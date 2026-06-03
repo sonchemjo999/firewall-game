@@ -47,12 +47,19 @@ systemctl start mariadb
 
 Tạo Database và User:
 ```bash
-mysql -u root <<EOF
+mysql -u root <<'EOF'
+DROP USER IF EXISTS 'nroshield'@'localhost';
+DROP USER IF EXISTS 'nroshield'@'127.0.0.1';
+DROP USER IF EXISTS 'nroshield'@'%';
+
 CREATE DATABASE IF NOT EXISTS nroshield CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#\$';
+
+CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'Matkhau1@#$';
 GRANT ALL PRIVILEGES ON nroshield.* TO 'nroshield'@'localhost';
+
 FLUSH PRIVILEGES;
 EOF
+
 ```
 
 Kiểm tra đã tạo thành công:
