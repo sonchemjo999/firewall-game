@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: nroshield-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-nroshield_root_2024}
+      MYSQL_DATABASE: ${DB_NAME:-firewall_db}
+      MYSQL_USER: ${DB_USER:-firewall_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-firewall_pass}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nroshield
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nroshield-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-firewall_user}
+      DB_PASSWORD: ${DB_PASSWORD:-firewall_pass}
+      DB_NAME: ${DB_NAME:-firewall_db}
+      JWT_SECRET: ${JWT_SECRET:-nroshield_jwt_secret_change_me}
+      API_PORT: 5000
+      VPS_IP: ${VPS_IP:-0.0.0.0}
+      NODE_ENV: production
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./firewall:/app/firewall
+      - ./web:/app/web
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/system/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nroshield
+
+  ai-engine:
+    build:
+      context: ./ai_engine
+      dockerfile: Dockerfile
+    container_name: nroshield-ai
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_URL: http://backend:5000
+      AI_PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ai_models:/app/models
+    networks:
+      - nroshield
+
+volumes:
+  db_data:
+    driver: local
+  ai_models:
+    driver: local
+
+networks:
+  nroshield:
+    driver: bridge

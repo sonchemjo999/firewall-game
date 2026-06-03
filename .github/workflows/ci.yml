@@ -1,0 +1,123 @@
+name: NRO Shield CI
+
+on:
+  push:
+    branches: [main, 'devin/*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-lint:
+    name: Backend Lint & Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: Check syntax (require all modules)
+        working-directory: ./backend
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const dirs = ['routes', 'services', 'middleware', 'config', 'database'];
+            let errors = 0;
+            dirs.forEach(dir => {
+              const dirPath = path.join(__dirname, dir);
+              if (!fs.existsSync(dirPath)) return;
+              fs.readdirSync(dirPath).filter(f => f.endsWith('.js')).forEach(f => {
+                try {
+                  require('./' + dir + '/' + f);
+                  console.log('  OK:', dir + '/' + f);
+                } catch(e) {
+                  const msg = e.message || '';
+                  if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('getaddrinfo') || msg.includes('Access denied')) {
+                    console.log('  OK (db):', dir + '/' + f);
+                  } else {
+                    console.error('  FAIL:', dir + '/' + f, '-', msg);
+                    errors++;
+                  }
+                }
+              });
+            });
+            if (errors > 0) process.exit(1);
+          "
+
+  firewall-lint:
+    name: Firewall Script Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check bash syntax
+        run: |
+          echo "=== Checking firewall scripts ==="
+          errors=0
+          for script in firewall/*.sh; do
+            if bash -n "$script" 2>&1; then
+              echo "  OK: $script"
+            else
+              echo "  FAIL: $script"
+              errors=$((errors + 1))
+            fi
+          done
+          if [ $errors -gt 0 ]; then
+            echo "FAILED: $errors scripts have syntax errors"
+            exit 1
+          fi
+          echo "All scripts passed syntax check"
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "=== Checking for hardcoded secrets ==="
+          if grep -rn "password\s*=\s*['\"][^'\"]*['\"]" backend/ --include="*.js" \
+             | grep -v "node_modules" \
+             | grep -v "password.*:" \
+             | grep -v "req.body" \
+             | grep -v "process.env" \
+             | grep -v "bcrypt" \
+             | grep -v "\.example" \
+             | grep -v "test" \
+             | grep -v "placeholder"; then
+            echo "WARNING: Possible hardcoded secrets found (review above)"
+          else
+            echo "No hardcoded secrets detected"
+          fi
+
+      - name: Check for command injection patterns
+        run: |
+          echo "=== Checking for command injection ==="
+          safe=true
+          if grep -rn "exec(\`\|exec(\"" backend/ --include="*.js" \
+             | grep -v "node_modules" \
+             | grep -v "replace.*[^0-9]" \
+             | grep -v "sanitize"; then
+            echo "WARNING: Review exec() calls above for injection risks"
+          fi
+          echo "Security check complete"
+
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t nroshield:test .
+
+      - name: Verify image
+        run: docker images nroshield:test

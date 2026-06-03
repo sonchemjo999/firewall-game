@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRO Shield — Dashboard</title>
+    <meta name="description" content="NRO Shield DDoS Protection Dashboard">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="login-logo">
+                    <div class="shield-icon">🛡️</div>
+                    <h1>NRO Shield</h1>
+                    <p>DDoS Protection as a Service</p>
+                </div>
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="login-username" placeholder="Nhập username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" placeholder="Nhập password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Đăng Nhập</button>
+                    <div class="login-divider"><span>hoặc</span></div>
+                    <button type="button" class="btn btn-outline btn-full" onclick="showRegister()">Đăng Ký với
+                        Key</button>
+                </form>
+                <div id="register-form" class="login-form" style="display:none">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="reg-username" placeholder="Chọn username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="reg-password" placeholder="Tạo password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>License Key</label>
+                        <input type="text" id="reg-key" placeholder="NRO-XXXX..." required>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-full" onclick="doRegister()">Đăng Ký</button>
+                    <button type="button" class="btn btn-ghost btn-full" onclick="showLogin()">← Quay lại đăng
+                        nhập</button>
+                </div>
+                <div id="login-error" class="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard-screen" class="screen">
+            <!-- Sidebar -->
+            <nav class="sidebar">
+                <div class="sidebar-header">
+                    <div class="shield-icon-sm">🛡️</div>
+                    <span class="sidebar-title">NRO Shield</span>
+                </div>
+                <ul class="sidebar-menu">
+                    <li class="active" data-page="overview"><span class="menu-icon">📊</span> Tổng quan</li>
+                    <li data-page="servers"><span class="menu-icon">🖥️</span> Servers</li>
+                    <li data-page="proxies"><span class="menu-icon">🔀</span> Proxy</li>
+                    <li data-page="attacks"><span class="menu-icon">🚨</span> Tấn công</li>
+                    <li data-page="ai"><span class="menu-icon">🤖</span> AI Engine</li>
+                    <li id="admin-menu" data-page="admin" style="display:none"><span class="menu-icon">⚙️</span> Admin
+                    </li>
+                </ul>
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <span id="user-name">—</span>
+                        <span id="user-role" class="badge">user</span>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="logout()">Đăng xuất</button>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <header class="top-bar">
+                    <div class="header-left">
+                        <button id="menu-toggle" class="btn-menu">☰</button>
+                        <h2 id="page-title">Tổng quan</h2>
+                    </div>
+                    <div class="top-bar-actions">
+                        <span class="status-dot green"></span>
+                        <span id="api-status">Connected</span>
+                    </div>
+                </header>
+
+                <!-- Overview Page -->
+                <div id="page-overview" class="page active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">🖥️</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-servers">0</span>
+                                <span class="stat-label">Servers</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">🔀</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-ports">0/0</span>
+                                <span class="stat-label">Active Ports</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">⚡</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-attacks">0</span>
+                                <span class="stat-label">Attacks Today</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">🤖</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-ai">Learning</span>
+                                <span class="stat-label">AI Status</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">🔥</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-cpu">0%</span>
+                                <span class="stat-label">CPU Usage</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">💾</div>
+                            <div class="stat-info">
+                                <span class="stat-value" id="stat-ram">0%</span>
+                                <span class="stat-label">RAM Usage</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <div class="card-header-flex">
+                            <h3>📊 Lưu lượng ròng (Real-time)</h3>
+                            <div class="live-indicator"><span class="pulse-dot"></span> Live</div>
+                        </div>
+                        <div class="chart-container" style="position: relative; height:300px; width:100%">
+                            <canvas id="trafficChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>🔀 Proxy gần đây</h3>
+                        <div id="recent-proxies" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Servers Page -->
+                <div id="page-servers" class="page">
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="showAddServer()">+ Thêm Server</button>
+                    </div>
+                    <div id="add-server-form" class="card" style="display:none">
+                        <h3>Thêm Server Mới</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tên server</label>
+                                <input type="text" id="srv-name" placeholder="NRO Server 1">
+                            </div>
+                            <div class="form-group">
+                                <label>IP Server Game</label>
+                                <input type="text" id="srv-ip" placeholder="103.77.246.xxx">
+                            </div>
+                            <div class="form-group" style="align-self:flex-end">
+                                <button class="btn btn-primary" onclick="addServer()">Thêm</button>
+                                <button class="btn btn-ghost" onclick="hideAddServer()">Hủy</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div id="servers-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proxies Page -->
+                <div id="page-proxies" class="page">
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="showAddProxy()">+ Tạo Proxy</button>
+                    </div>
+                    <div id="add-proxy-form" class="card" style="display:none">
+                        <h3>Tạo Proxy Mới</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Server</label>
+                                <select id="proxy-server"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Port Game</label>
+                                <input type="number" id="proxy-port" placeholder="14445" min="1" max="65535">
+                            </div>
+                            <div class="form-group">
+                                <label>Protocol</label>
+                                <select id="proxy-proto">
+                                    <option value="tcp">TCP</option>
+                                    <option value="udp">UDP</option>
+                                    <option value="both">Both</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="align-self:flex-end">
+                                <button class="btn btn-primary" onclick="addProxy()">Tạo</button>
+                                <button class="btn btn-ghost" onclick="hideAddProxy()">Hủy</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div id="proxies-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attacks Page -->
+                <div id="page-attacks" class="page">
+                    <div class="card">
+                        <h3>Tấn công gần đây</h3>
+                        <div id="attacks-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Page -->
+                <div id="page-ai" class="page">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon purple">🧠</div>
+                            <div class="stat-info"><span class="stat-value" id="ai-models">0</span><span
+                                    class="stat-label">Active Models</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon red">🎯</div>
+                            <div class="stat-info"><span class="stat-value" id="ai-detections">0</span><span
+                                    class="stat-label">Detections 24h</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>AI Detections</h3>
+                        <div id="ai-detections-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Page -->
+                <div id="page-admin" class="page">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">👥</div>
+                            <div class="stat-info"><span class="stat-value" id="admin-users">0</span><span
+                                    class="stat-label">Users</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">🔑</div>
+                            <div class="stat-info"><span class="stat-value" id="admin-keys">0</span><span
+                                    class="stat-label">Active Keys</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">🔀</div>
+                            <div class="stat-info"><span class="stat-value" id="admin-proxies">0</span><span
+                                    class="stat-label">Total Proxies</span></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Tạo Key Mới</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>Max Servers</label><input type="number" id="key-servers"
+                                    value="1" min="1"></div>
+                            <div class="form-group"><label>Max Ports/Server</label><input type="number" id="key-ports"
+                                    value="3" min="1"></div>
+                            <div class="form-group"><label>Hạn (ngày)</label><input type="number" id="key-days"
+                                    value="30" min="1"></div>
+                            <div class="form-group" style="align-self:flex-end"><button class="btn btn-primary"
+                                    onclick="createKey()">Tạo Key</button></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Danh sách Keys</h3>
+                        <div id="keys-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Users</h3>
+                        <div id="users-list" class="table-wrap">
+                            <p class="muted">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js?v=4"></script>
+</body>
+
+</html>

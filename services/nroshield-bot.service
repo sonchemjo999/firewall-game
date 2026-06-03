@@ -1,0 +1,14 @@
+[Unit]
+Description=NRO Shield Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nroshield/telegram_bot
+ExecStart=/usr/bin/node bot.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
