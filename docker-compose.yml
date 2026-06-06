@@ -5,23 +5,58 @@ services:
     image: mariadb:10.11
     container_name: nroshield-db
     restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-nroshield_root_2024}
-      MYSQL_DATABASE: ${DB_NAME:-firewall_db}
-      MYSQL_USER: ${DB_USER:-firewall_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-firewall_pass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_this_root_password}
+      MYSQL_DATABASE: ${DB_NAME:-nroshield}
+      MYSQL_USER: ${DB_USER:-nroshield}
+      MYSQL_PASSWORD: ${DB_PASS:-change_this_db_password}
     volumes:
       - db_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    ports:
-      - "3306:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
+      retries: 10
+    networks:
+      - nroshield_internal
+
+  ai_engine:
+    build:
+      context: ./ai_engine
+    container_name: nroshield-ai
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-nroshield}
+      DB_PASS: ${DB_PASS:-change_this_db_password}
+      DB_NAME: ${DB_NAME:-nroshield}
+      AI_ENGINE_PORT: 8000
+      AI_LEARNING_DAYS: ${AI_LEARNING_DAYS:-7}
+      AI_RETRAIN_INTERVAL: ${AI_RETRAIN_INTERVAL:-3600}
+      AI_COLLECT_INTERVAL: ${AI_COLLECT_INTERVAL:-5}
+      AI_BLOCK_THRESHOLD: ${AI_BLOCK_THRESHOLD:-0.8}
+      AI_RATE_LIMIT_THRESHOLD: ${AI_RATE_LIMIT_THRESHOLD:-0.6}
+      VPS_PUBLIC_IP: ${VPS_PUBLIC_IP:-}
+      MODEL_DIR: /app/models
+    expose:
+      - "8000"
+    volumes:
+      - ai_models:/app/models
+      - /var/log/nroshield:/var/log/nroshield:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
       retries: 5
     networks:
-      - nroshield
+      - nroshield_internal
 
   backend:
     build:
@@ -32,53 +67,43 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ai_engine:
+        condition: service_started
     environment:
+      NODE_ENV: production
+      API_PORT: 5000
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: ${DB_USER:-firewall_user}
-      DB_PASSWORD: ${DB_PASSWORD:-firewall_pass}
-      DB_NAME: ${DB_NAME:-firewall_db}
-      JWT_SECRET: ${JWT_SECRET:-nroshield_jwt_secret_change_me}
-      API_PORT: 5000
-      VPS_IP: ${VPS_IP:-0.0.0.0}
-      NODE_ENV: production
+      DB_USER: ${DB_USER:-nroshield}
+      DB_PASS: ${DB_PASS:-change_this_db_password}
+      DB_NAME: ${DB_NAME:-nroshield}
+      JWT_SECRET: ${JWT_SECRET:-change_this_jwt_secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      VPS_PUBLIC_IP: ${VPS_PUBLIC_IP:-}
+      PROXY_PORT_RANGE_START: ${PROXY_PORT_RANGE_START:-30000}
+      PROXY_PORT_RANGE_END: ${PROXY_PORT_RANGE_END:-60000}
+      MAX_CONN_PER_IP: ${MAX_CONN_PER_IP:-500}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      AI_ENGINE_HOST: ai_engine
+      AI_ENGINE_PORT: 8000
+      AI_BASE_URL: http://ai_engine:8000
     ports:
       - "5000:5000"
     volumes:
-      - ./firewall:/app/firewall
-      - ./web:/app/web
+      - /var/log/nroshield:/var/log/nroshield:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/system/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/api/system/health"]
       interval: 30s
       timeout: 5s
-      retries: 3
+      retries: 5
     networks:
-      - nroshield
-
-  ai-engine:
-    build:
-      context: ./ai_engine
-      dockerfile: Dockerfile
-    container_name: nroshield-ai
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      API_URL: http://backend:5000
-      AI_PORT: 8000
-    ports:
-      - "8000:8000"
-    volumes:
-      - ai_models:/app/models
-    networks:
-      - nroshield
+      - nroshield_internal
 
 volumes:
   db_data:
-    driver: local
   ai_models:
-    driver: local
 
 networks:
-  nroshield:
+  nroshield_internal:
     driver: bridge

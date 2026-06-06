@@ -259,13 +259,206 @@ cd firewall && chmod +x *.sh && sudo bash master_setup.sh all
 cd ../backend && node server.js
 ```
 
-### Cach 2: Docker
+### Cach 2: Docker tren VPS moi tinh (khuyen nghi neu dung 3 container)
+
+Muc tieu cua cach nay:
+- Anti-DDoS that su van chay tren host (`iptables`, `ipset`, `raw PREROUTING`)
+- Ung dung chay bang Docker Compose voi 3 container rieng: `db`, `ai_engine`, `backend`
+- Web quan tri duoc public qua Nginx reverse proxy tai `80/443`
+
+#### Buoc 1: Dang nhap vao VPS moi va cap nhat he thong
 
 ```bash
+ssh root@YOUR_VPS_IP
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y && apt-get upgrade -y
+apt-get install -y ca-certificates curl gnupg lsb-release git nano jq \
+  iptables ipset iptables-persistent netfilter-persistent conntrack \
+  nginx
+```
+
+#### Buoc 2: Cai Docker Engine va Docker Compose plugin
+
+```bash
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable docker
+systemctl start docker
+docker --version
+docker compose version
+```
+
+#### Buoc 3: Clone source code
+
+```bash
+rm -rf /opt/nroshield
 git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
 cd /opt/nroshield
+```
+
+#### Buoc 4: Tao file `.env` cho production
+
+```bash
 cp .env.example .env
 nano .env
+```
+
+Toi thieu can sua cac bien sau:
+
+```bash
+VPS_PUBLIC_IP="YOUR_VPS_IP"
+DB_PASS="MatKhauDBRatManh"
+DB_ROOT_PASSWORD="MatKhauRootDBRatManh"
+JWT_SECRET="ChuoiBiMatJWTRatDaiVaKhoDoan"
+API_PORT=5000
+AI_ENGINE_PORT=8000
+AI_ENGINE_HOST=ai_engine
+AI_BASE_URL=http://ai_engine:8000
+```
+
+Neu muon gui canh bao Telegram thi sua them:
+
+```bash
+TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
+TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
+```
+
+#### Buoc 5: Thiet lap firewall host truoc khi chay Docker
+
+```bash
+cd /opt/nroshield/firewall
+chmod +x *.sh
+bash master_setup.sh all
+```
+
+Sau khi chay xong, dam bao host cho phep cac cong can thiet:
+- `22` hoac `SSH_PORT` cho SSH
+- `80/443` cho web quan tri
+- `5000` neu ban muon public truc tiep backend API
+- cac game port/proxy port ban su dung
+
+#### Buoc 6: Build va chay 3 container
+
+```bash
+cd /opt/nroshield
+docker compose up -d --build
+docker compose ps
+```
+
+Kien truc se la:
+- `db`: MariaDB noi bo, khong public internet
+- `ai_engine`: Python AI noi bo, backend goi qua Docker network
+- `backend`: API + WebSocket o cong `5000`
+
+#### Buoc 7: Khoi tao database migrations trong container backend
+
+```bash
+docker compose exec backend node backend/database/migrate.js
+docker compose exec backend node backend/database/migrate_v2.js
+docker compose exec backend node backend/database/migrate_v3.js
+```
+
+#### Buoc 8: Cau hinh Nginx de public web quan tri
+
+Tao file `/etc/nginx/sites-available/nroshield.conf`:
+
+```bash
+cat <<'NGINX_EOF' > /etc/nginx/sites-available/nroshield.conf
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    root /opt/nroshield/web;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:5000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ws {
+        proxy_pass http://127.0.0.1:5000/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX_EOF
+
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/nroshield.conf /etc/nginx/sites-enabled/nroshield.conf
+nginx -t
+systemctl restart nginx
+systemctl enable nginx
+```
+
+#### Buoc 9: Kiem tra he thong sau khi deploy
+
+```bash
+# Kiem tra container
+docker compose ps
+
+# Kiem tra backend health
+curl http://127.0.0.1:5000/api/system/health
+
+# Kiem tra AI health
+curl http://127.0.0.1:8000/health || true
+
+# Kiem tra web public
+curl http://YOUR_VPS_IP/
+
+# Kiem tra WebSocket path
+curl -I http://YOUR_VPS_IP/
+```
+
+Truy cap dashboard quan tri tai:
+
+```bash
+http://YOUR_VPS_IP/
+```
+
+Neu da gan domain va SSL thi dung:
+
+```bash
+https://YOUR_DOMAIN/
+```
+
+#### Buoc 10: Lenh quan tri thuong dung
+
+```bash
+# Xem logs backend
+docker compose logs -f backend
+
+# Xem logs AI
+docker compose logs -f ai_engine
+
+# Xem logs DB
+docker compose logs -f db
+
+# Restart rieng backend
+docker compose restart backend
+
+# Restart toan bo stack
+docker compose down
 docker compose up -d
 ```
 
@@ -592,22 +785,38 @@ Traffic Monitor --> JSON metrics --> AI Engine phan tich
 
 ### Docker Compose
 
+Mô hình khuyến nghị cho production:
+- `db` -- MariaDB nội bộ, không public internet
+- `ai_engine` -- Python AI nội bộ, chỉ cho backend gọi qua Docker network
+- `backend` -- Node.js API + WebSocket trên port `5000`
+- Firewall anti-DDoS (`iptables`, `ipset`, `raw PREROUTING`) tiếp tục chạy trên host, không đưa vào container
+
 ```bash
 cp .env.example .env
 nano .env
-docker compose up -d
+docker compose up -d --build
 ```
+
+Cổng public khuyến nghị:
+- `80/443` -- web quản trị qua reverse proxy/static web server
+- `5000` -- backend API/WebSocket nếu cần public trực tiếp
+- Không public `3306` và `8000`
+
+Luồng triển khai nên dùng:
+1. Chạy firewall scripts trên host trước
+2. Khởi động 3 container `db`, `ai_engine`, `backend`
+3. Public dashboard web qua domain và reverse proxy `/api` + `/ws` về backend
 
 Services:
 - `backend` -- Node.js API (port 5000)
-- `mariadb` -- Database (port 3306)
-- `ai_engine` -- Python AI (port 8000)
+- `mariadb` -- Database nội bộ (port 3306 trên Docker network)
+- `ai_engine` -- Python AI nội bộ (port 8000 trên Docker network)
 
 ### Dockerfile
 
 ```bash
-docker build -t nroshield:latest .
-docker run -d -p 5000:5000 --env-file .env nroshield:latest
+docker build -t nroshield-backend:latest .
+docker run -d -p 5000:5000 --env-file .env nroshield-backend:latest
 ```
 
 ---
@@ -658,7 +867,11 @@ cd /opt/nroshield/firewall && sudo bash master_setup.sh all
 
 Kiem tra WebSocket path phai la `/ws`:
 ```
-ws://YOUR_IP:5000/ws
+ws://YOUR_DOMAIN/ws
+```
+Neu dung HTTPS thi WebSocket se la:
+```
+wss://YOUR_DOMAIN/ws
 ```
 
 ### Reset toan bo firewall

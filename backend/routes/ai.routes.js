@@ -1,9 +1,16 @@
 const express = require('express');
+const axios = require('axios');
 const db = require('../config/database');
+const config = require('../config/config');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sendAttackAlert } = require('../services/alert.service');
 
 const router = express.Router();
+
+function getAiBaseUrl() {
+    if (config.AI_BASE_URL) return config.AI_BASE_URL;
+    return `http://${config.AI_ENGINE_HOST}:${config.AI_ENGINE_PORT}`;
+}
 
 // POST /api/ai/alert — Webhook từ AI Engine (Không cần JWT, chỉ localhost)
 router.post('/alert', async (req, res) => {
@@ -66,7 +73,7 @@ router.get('/status', async (req, res) => {
             active_models,
             detections_24h: total_detections,
             latest_detection: latest || null,
-            engine_url: `http://127.0.0.1:${process.env.AI_ENGINE_PORT || 8000}`
+            engine_url: getAiBaseUrl()
         });
     } catch (err) {
         res.status(500).json({ error: 'Lỗi server' });
@@ -128,8 +135,7 @@ router.put('/detections/:id/feedback', async (req, res) => {
 // POST /api/ai/retrain — Trigger retrain (admin)
 router.post('/retrain', authenticate, requireAdmin, async (req, res) => {
     try {
-        const axios = require('axios');
-        const aiUrl = `http://127.0.0.1:${process.env.AI_ENGINE_PORT || 8000}/retrain`;
+        const aiUrl = `${getAiBaseUrl()}/retrain`;
         await axios.post(aiUrl, {}, { timeout: 5000 });
         res.json({ message: 'Retrain đã trigger' });
     } catch (err) {
