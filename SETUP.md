@@ -129,7 +129,7 @@ npm install
 
 ### 5.2. Khởi tạo Bảng Database
 ```bash
-node database/migrate.js
+npm run migrate
 ```
 Kết quả đúng sẽ hiện:
 ```
@@ -139,6 +139,8 @@ Kết quả đúng sẽ hiện:
 ✅ license_keys
 ✅ attack_logs
 ...
+[MIGRATE V2] Done!
+[Migrate v3] Complete!
 ```
 
 ### 5.3. Telegram Bot (Node.js)

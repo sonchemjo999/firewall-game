@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const db = require('../config/database');
 
 async function migrateV3() {
@@ -89,14 +90,22 @@ async function migrateV3() {
         )`
     ];
 
+    let failed = 0;
+
     for (const q of queries) {
         try {
             await db.query(q);
         } catch (err) {
             if (!err.message.includes('Duplicate column') && !err.message.includes('already exists')) {
+                failed++;
                 console.error('[Migrate v3] Error:', err.message);
             }
         }
+    }
+
+    if (failed > 0) {
+        console.error(`[Migrate v3] Failed with ${failed} error(s)`);
+        process.exit(1);
     }
 
     console.log('[Migrate v3] Complete!');
