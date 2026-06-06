@@ -98,7 +98,7 @@ Trong file `.env`, bạn **BẮT BUỘC** phải sửa các dòng sau:
 | `JWT_SECRET` | Chuỗi bí mật để mã hóa token đăng nhập | `ChuoiBiMat123!@#` |
 | `TELEGRAM_BOT_TOKEN` | Token từ `@BotFather` trên Telegram | `7123456:AAF...` |
 | `TELEGRAM_CHAT_ID` | Chat ID nhận thông báo (lấy từ `@userinfobot`) | `123456789` |
-| `SSH_PORT` | Port SSH của VPS (mặc định `22`, nên đổi `2222`) | `2222` |
+| `SSH_PORT` | Port SSH của VPS (mặc định `22`) | `22` |
 
 Các biến khác có thể giữ giá trị mặc định:
 

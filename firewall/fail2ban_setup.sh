@@ -10,7 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_DIR}/../.env"
 
-SSH_PORT="2222"
+SSH_PORT="22"
 [[ -f "$CONFIG_FILE" ]] && source "$CONFIG_FILE"
 
 RED='\033[0;31m'

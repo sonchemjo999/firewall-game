@@ -1,105 +1,105 @@
 <div align="center">
   <img src="icon.ico" width="120" alt="NRO Shield Logo">
   <h1>NRO Shield v2.2</h1>
-  <p><strong>He thong Chong DDoS Da Tang cho Game Server & Web Server</strong></p>
+  <p><strong>Hệ thống Chống DDoS Đa tầng cho Game Server & Web Server</strong></p>
   <p>AI-Powered | Multi-Game | Real-time | Flutter App</p>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
   [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-  [![CI](https://github.com/hoangtuvungcao/firewall/actions/workflows/ci.yml/badge.svg)](https://github.com/hoangtuvungcao/firewall/actions)
+  [![CI](https://github.com/sonchemjo999/firewall-game/actions/workflows/ci.yml/badge.svg)](https://github.com/sonchemjo999/firewall-game/actions)
 </div>
 
 ---
 
-## Muc Luc
+## Mục lục
 
-- [Gioi thieu](#gioi-thieu)
-- [Tinh nang](#tinh-nang)
-- [Kien truc he thong](#kien-truc-he-thong)
-- [Cau truc thu muc](#cau-truc-thu-muc)
-- [Yeu cau he thong](#yeu-cau-he-thong)
-- [Cai dat nhanh](#cai-dat-nhanh)
-- [Cai dat chi tiet](#cai-dat-chi-tiet)
-- [Cau hinh](#cau-hinh)
-- [He thong Firewall](#he-thong-firewall)
+- [Giới thiệu](#giới-thiệu)
+- [Tính năng](#tính-năng)
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
+- [Cài đặt nhanh](#cài-đặt-nhanh)
+- [Cài đặt chi tiết](#cài-đặt-chi-tiết)
+- [Cấu hình](#cấu-hình)
+- [Hệ thống Firewall](#hệ-thống-firewall)
 - [Backend API](#backend-api)
 - [Flutter App](#flutter-app)
 - [AI Engine](#ai-engine)
 - [Docker](#docker)
-- [Game duoc ho tro](#game-duoc-ho-tro)
-- [Xu ly su co](#xu-ly-su-co)
-- [Dong gop](#dong-gop)
+- [Game được hỗ trợ](#game-được-hỗ-trợ)
+- [Xử lý sự cố](#xử-lý-sự-cố)
+- [Đóng góp](#đóng-góp)
 
 ---
 
-## Gioi thieu
+## Giới thiệu
 
-NRO Shield la he thong phong chong tan cong DDoS toan dien, duoc thiet ke chuyen biet cho game server va web server. He thong ket hop:
+NRO Shield là hệ thống phòng chống tấn công DDoS toàn diện, được thiết kế chuyên biệt cho game server và web server. Hệ thống kết hợp:
 
-- **Kernel-level packet filtering** -- Drop tan cong tai tang `raw` table (truoc conntrack), khong ton CPU/RAM
-- **AI anomaly detection** -- Machine Learning phat hien tan cong zero-day
-- **Multi-game profiles** -- Toi uu cho 9+ loai game server khac nhau
-- **Real-time monitoring** -- WebSocket dong bo giua firewall, backend, va app
-- **Mobile management** -- Flutter app quan ly tu xa tren dien thoai
+- **Kernel-level packet filtering** -- Drop tấn công tại tầng `raw` table (trước conntrack), không tốn CPU/RAM
+- **AI anomaly detection** -- Machine Learning phát hiện tấn công zero-day
+- **Multi-game profiles** -- Tối ưu cho 9+ loại game server khác nhau
+- **Real-time monitoring** -- WebSocket đồng bộ giữa firewall, backend và app
+- **Mobile management** -- Flutter app quản lý từ xa trên điện thoại
 
-### Van de giai quyet
+### Vấn đề giải quyết
 
-Khi VPS bi tan cong DDoS (botnet), cac giai phap thong thuong xu ly packet o tang ung dung -- **ton CPU, RAM, va gay nghen conntrack**. NRO Shield giai quyet bang cach:
+Khi VPS bị tấn công DDoS (botnet), các giải pháp thông thường xử lý packet ở tầng ứng dụng -- **tốn CPU, RAM và gây nghẽn conntrack**. NRO Shield giải quyết bằng cách:
 
 ```
-Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG ton tai nguyen
+Packet tấn công --> raw PREROUTING (DROP ngay) --> KHÔNG tạo conntrack --> KHÔNG tốn tài nguyên
                     ^^^^^^^^^^^^^^^^^^^^^^^^
-                    Xu ly tai day = zero resource usage
+                    Xử lý tại đây = zero resource usage
 ```
 
 ---
 
-## Tinh nang
+## Tính năng
 
-### Chong tan cong (20+ scripts)
+### Chống tấn công (20+ scripts)
 
-| Tinh nang | Mo ta |
+| Tính năng | Mô tả |
 |-----------|--------|
-| Early Drop Engine | Drop tai `raw` table truoc conntrack -- zero CPU/RAM |
-| Anti-SYN Flood | 3 lop: global rate, per-IP, per-IP-per-port |
-| Anti-UDP Flood | Game-aware filtering voi packet size validation |
+| Early Drop Engine | Drop tại `raw` table trước conntrack -- zero CPU/RAM |
+| Anti-SYN Flood | 3 lớp: global rate, per-IP, per-IP-per-port |
+| Anti-UDP Flood | Game-aware filtering với packet size validation |
 | Anti-Bypass | TCP validation (MSS, TTL, flags), UDP pattern detection |
-| Anti-Carpet Bombing | Gioi han connections per destination port |
+| Anti-Carpet Bombing | Giới hạn connections per destination port |
 | Anti-Amplification | Block 14+ reflection source ports |
-| Anti-Botnet | Tu dong sync IP blacklist tu 5 threat intelligence sources |
+| Anti-Botnet | Tự động sync IP blacklist từ 5 threat intelligence sources |
 | Challenge-Response | TCP SYN Cookie + UDP challenge tokens |
-| Fingerprinting | Nhan dien bot qua TCP window, TTL, connection rate |
-| Dynamic Blacklist | Auto-ban IP vuot nguong (kiem tra moi 10 giay) |
-| Adaptive Rate Limit | Tu dieu chinh nguong theo muc conntrack usage |
-| Backup/Restore | Sao luu va phuc hoi toan bo iptables/ipset/sysctl |
+| Fingerprinting | Nhận diện bot qua TCP window, TTL, connection rate |
+| Dynamic Blacklist | Auto-ban IP vượt ngưỡng (kiểm tra mỗi 10 giây) |
+| Adaptive Rate Limit | Tự điều chỉnh ngưỡng theo mức conntrack usage |
+| Backup/Restore | Sao lưu và phục hồi toàn bộ iptables/ipset/sysctl |
 
-### Quan ly va Giam sat
+### Quản lý và Giám sát
 
-| Tinh nang | Mo ta |
+| Tính năng | Mô tả |
 |-----------|--------|
 | 2FA Authentication | TOTP (Google Authenticator) + backup codes |
-| Phan quyen 4 cap | admin / reseller / premium / basic |
-| Server Health | Auto ping/port check moi 5 phut |
-| Attack Analytics | Phan tich xu huong, top attackers, timeline |
-| Webhook Alerts | Thong bao qua Discord/Slack khi co su kien |
-| Alert Rules | Canh bao tuy chinh (nguong PPS, Mbps, connections) |
-| Audit Log | Ghi lai moi hanh dong admin |
-| Config Backup | Sao luu/phuc hoi cau hinh firewall |
+| Phân quyền 4 cấp | admin / reseller / premium / basic |
+| Server Health | Auto ping/port check mỗi 5 phút |
+| Attack Analytics | Phân tích xu hướng, top attackers, timeline |
+| Webhook Alerts | Thông báo qua Discord/Slack khi có sự kiện |
+| Alert Rules | Cảnh báo tùy chỉnh (ngưỡng PPS, Mbps, connections) |
+| Audit Log | Ghi lại mọi hành động admin |
+| Config Backup | Sao lưu/phục hồi cấu hình firewall |
 
-### Ha tang
+### Hạ tầng
 
-| Tinh nang | Mo ta |
+| Tính năng | Mô tả |
 |-----------|--------|
-| Docker | Dockerfile + docker-compose cho trien khai nhanh |
+| Docker | Dockerfile + docker-compose cho triển khai nhanh |
 | CI/CD | GitHub Actions (4 jobs: lint, syntax, security, docker) |
 | Systemd | Auto-restore firewall khi reboot |
-| Log Rotate | Tu dong xoay log, giu 30 ngay |
+| Log Rotate | Tự động xoay log, giữ 30 ngày |
 
 ---
 
-## Kien truc he thong
+## Kiến trúc hệ thống
 
 ```
                      +------------------+
@@ -137,19 +137,19 @@ Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG
       +----------------------------------+
 ```
 
-### Thu tu xu ly packet
+### Thứ tự xử lý packet
 
 ```
 1. raw PREROUTING     --> Blacklist, invalid flags, bogon IPs, amplification
-                          (DROP o day = KHONG ton CPU/RAM/conntrack)
-2. conntrack          --> Chi xu ly packets hop le
+                          (DROP ở đây = KHÔNG tốn CPU/RAM/conntrack)
+2. conntrack          --> Chỉ xử lý packets hợp lệ
 3. mangle PREROUTING  --> TTL, MSS, PPS rate limit
 4. filter INPUT       --> Game-specific rules, connection limits
 ```
 
 ---
 
-## Cau truc thu muc
+## Cấu trúc thư mục
 
 ```
 nroshield/
@@ -214,9 +214,9 @@ nroshield/
 
 ---
 
-## Yeu cau he thong
+## Yêu cầu hệ thống
 
-| Thanh phan | Yeu cau toi thieu |
+| Thành phần | Yêu cầu tối thiểu |
 |------------|-------------------|
 | OS | Ubuntu 20.04 / 22.04 LTS |
 | CPU | 2 cores |
@@ -225,48 +225,48 @@ nroshield/
 | Node.js | v18+ |
 | Python | 3.9+ |
 | MariaDB/MySQL | 10.6+ / 8.0+ |
-| Root access | Bat buoc (cho iptables) |
+| Root access | Bắt buộc (cho iptables) |
 
 ---
 
-## Cai dat nhanh
+## Cài đặt nhanh
 
-### Cach 1: Master Setup (khuyen nghi)
+### Cách 1: Master Setup (khuyến nghị)
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 
-# 2. Cau hinh
+# 2. Cấu hình
 cp .env.example .env
-nano .env    # Sua: VPS_PUBLIC_IP, DB_PASS, JWT_SECRET
+nano .env    # Sửa: VPS_PUBLIC_IP, DB_PASS, JWT_SECRET
 
-# 3. Cai dat dependencies
+# 3. Cài đặt dependencies
 apt-get update && apt-get install -y mariadb-server nodejs npm iptables ipset
 cd backend && npm install && cd ..
 
-# 4. Khoi tao database
+# 4. Khởi tạo database
 mysql -e "CREATE DATABASE nroshield CHARACTER SET utf8mb4;"
 mysql -e "CREATE USER 'nroshield'@'localhost' IDENTIFIED BY 'YOUR_PASSWORD';"
 mysql -e "GRANT ALL ON nroshield.* TO 'nroshield'@'localhost'; FLUSH PRIVILEGES;"
 cd backend && node database/migrate.js && node database/migrate_v2.js && node database/migrate_v3.js && cd ..
 
-# 5. Setup firewall (1 lenh duy nhat)
+# 5. Setup firewall (1 lệnh duy nhất)
 cd firewall && chmod +x *.sh && sudo bash master_setup.sh all
 
-# 6. Khoi dong backend
+# 6. Khởi động backend
 cd ../backend && node server.js
 ```
 
-### Cach 2: Docker tren VPS moi tinh (khuyen nghi neu dung 3 container)
+### Cách 2: Docker trên VPS mới tinh (khuyến nghị nếu dùng 3 container)
 
-Muc tieu cua cach nay:
-- Anti-DDoS that su van chay tren host (`iptables`, `ipset`, `raw PREROUTING`)
-- Ung dung chay bang Docker Compose voi 3 container rieng: `db`, `ai_engine`, `backend`
-- Web quan tri duoc public qua Nginx reverse proxy tai `80/443`
+Mục tiêu của cách này:
+- Anti-DDoS thật sự vẫn chạy trên host (`iptables`, `ipset`, `raw PREROUTING`)
+- Ứng dụng chạy bằng Docker Compose với 3 container riêng: `db`, `ai_engine`, `backend`
+- Web quản trị được public qua Nginx reverse proxy tại `80/443`
 
-#### Buoc 1: Dang nhap vao VPS moi va cap nhat he thong
+#### Bước 1: Đăng nhập vào VPS mới và cập nhật hệ thống
 
 ```bash
 ssh root@YOUR_VPS_IP
@@ -277,7 +277,7 @@ apt-get install -y ca-certificates curl gnupg lsb-release git nano jq \
   nginx
 ```
 
-#### Buoc 2: Cai Docker Engine va Docker Compose plugin
+#### Bước 2: Cài Docker Engine và Docker Compose plugin
 
 ```bash
 install -m 0755 -d /etc/apt/keyrings
@@ -294,22 +294,22 @@ docker --version
 docker compose version
 ```
 
-#### Buoc 3: Clone source code
+#### Bước 3: Clone source code
 
 ```bash
 rm -rf /opt/nroshield
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 ```
 
-#### Buoc 4: Tao file `.env` cho production
+#### Bước 4: Tạo file `.env` cho production
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Toi thieu can sua cac bien sau:
+Tối thiểu cần sửa các biến sau:
 
 ```bash
 VPS_PUBLIC_IP="YOUR_VPS_IP"
@@ -322,14 +322,14 @@ AI_ENGINE_HOST=ai_engine
 AI_BASE_URL=http://ai_engine:8000
 ```
 
-Neu muon gui canh bao Telegram thi sua them:
+Nếu muốn gửi cảnh báo Telegram thì sửa thêm:
 
 ```bash
 TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
 TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
 
-#### Buoc 5: Thiet lap firewall host truoc khi chay Docker
+#### Bước 5: Thiết lập firewall host trước khi chạy Docker
 
 ```bash
 cd /opt/nroshield/firewall
@@ -337,13 +337,13 @@ chmod +x *.sh
 bash master_setup.sh all
 ```
 
-Sau khi chay xong, dam bao host cho phep cac cong can thiet:
-- `22` hoac `SSH_PORT` cho SSH
-- `80/443` cho web quan tri
-- `5000` neu ban muon public truc tiep backend API
-- cac game port/proxy port ban su dung
+Sau khi chạy xong, đảm bảo host cho phép các cổng cần thiết:
+- `22` hoặc `SSH_PORT` cho SSH
+- `80/443` cho web quản trị
+- `5000` nếu bạn muốn public trực tiếp backend API
+- các game port/proxy port bạn sử dụng
 
-#### Buoc 6: Build va chay 3 container
+#### Bước 6: Build và chạy 3 container
 
 ```bash
 cd /opt/nroshield
@@ -351,12 +351,12 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Kien truc se la:
-- `db`: MariaDB noi bo, khong public internet
-- `ai_engine`: Python AI noi bo, backend goi qua Docker network
-- `backend`: API + WebSocket o cong `5000`
+Kết thúc bước này, kiến trúc sẽ là:
+- `db`: MariaDB nội bộ, không public internet
+- `ai_engine`: Python AI nội bộ, backend gọi qua Docker network
+- `backend`: API + WebSocket ở cổng `5000`
 
-#### Buoc 7: Khoi tao database migrations trong container backend
+#### Bước 7: Khởi tạo database migrations trong container backend
 
 ```bash
 docker compose exec backend node backend/database/migrate.js
@@ -364,7 +364,7 @@ docker compose exec backend node backend/database/migrate_v2.js
 docker compose exec backend node backend/database/migrate_v3.js
 ```
 
-#### Buoc 8: Cau hinh Nginx de public web quan tri
+#### Bước 8: Cấu hình Nginx để public web quản trị
 
 Tao file `/etc/nginx/sites-available/nroshield.conf`:
 
@@ -411,38 +411,38 @@ systemctl restart nginx
 systemctl enable nginx
 ```
 
-#### Buoc 9: Kiem tra he thong sau khi deploy
+#### Bước 9: Kiểm tra hệ thống sau khi deploy
 
 ```bash
-# Kiem tra container
+# Kiểm tra container
 docker compose ps
 
-# Kiem tra backend health
+# Kiểm tra backend health
 curl http://127.0.0.1:5000/api/system/health
 
-# Kiem tra AI health
+# Kiểm tra AI health
 curl http://127.0.0.1:8000/health || true
 
-# Kiem tra web public
+# Kiểm tra web public
 curl http://YOUR_VPS_IP/
 
-# Kiem tra WebSocket path
+# Kiểm tra WebSocket path
 curl -I http://YOUR_VPS_IP/
 ```
 
-Truy cap dashboard quan tri tai:
+Truy cập dashboard quản trị tại:
 
 ```bash
 http://YOUR_VPS_IP/
 ```
 
-Neu da gan domain va SSL thi dung:
+Nếu đã gắn domain và SSL thì dùng:
 
 ```bash
 https://YOUR_DOMAIN/
 ```
 
-#### Buoc 10: Lenh quan tri thuong dung
+#### Bước 10: Lệnh quản trị thường dùng
 
 ```bash
 # Xem logs backend
@@ -462,13 +462,13 @@ docker compose down
 docker compose up -d
 ```
 
-### Cach 3: Huong dan chi tiet tung buoc
+### Cách 3: Hướng dẫn chi tiết từng bước
 
-Xem **[SETUP.md](SETUP.md)** -- huong dan cam tay chi viec tu VPS trong den hoat dong 100%.
+Xem **[SETUP.md](SETUP.md)** -- hướng dẫn cầm tay chỉ việc từ VPS trống đến hoạt động 100%.
 
 ---
 
-## Cai dat chi tiet
+## Cài đặt chi tiết
 
 ### 1. Chuan bi he thong
 
@@ -489,7 +489,7 @@ curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 apt-get install -y nodejs
 ```
 
-### 3. Cau hinh Database
+### 3. Cấu hình Database
 
 ```bash
 systemctl enable --now mariadb
@@ -502,10 +502,10 @@ FLUSH PRIVILEGES;
 SQL
 ```
 
-### 4. Clone va Cau hinh
+### 4. Clone và Cấu hình
 
 ```bash
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 cp .env.example .env
 nano .env   # Sua cac gia tri theo VPS cua ban
@@ -521,7 +521,7 @@ node database/migrate_v2.js
 node database/migrate_v3.js
 ```
 
-### 6. Thiet lap Firewall
+### 6. Thiết lập Firewall
 
 ```bash
 cd /opt/nroshield/firewall
@@ -529,18 +529,18 @@ chmod +x *.sh
 sudo bash master_setup.sh all   # Hoac: nro, minecraft, samp, fivem...
 ```
 
-**Master setup se thuc hien 9 buoc tu dong:**
-1. Backup cau hinh hien tai
-2. Cai dat dependencies
+**Master setup sẽ thực hiện 9 bước tự động:**
+1. Backup cấu hình hiện tại
+2. Cài đặt dependencies
 3. Kernel hardening (sysctl)
 4. **Early Drop Engine** (raw/mangle pre-conntrack)
 5. Base firewall rules
 6. Anti-DDoS v2 + Anti-Bypass + Anti-Botnet
 7. Game-specific rules
 8. Systemd services (auto-restore on reboot)
-9. Kiem tra va tong ket
+9. Kiểm tra và tổng kết
 
-### 7. Khoi dong Services
+### 7. Khởi động Services
 
 ```bash
 # Backend API
@@ -558,42 +558,42 @@ cd /opt/nroshield/telegram_bot && npm install && node bot.js
 
 ---
 
-## Cau hinh
+## Cấu hình
 
 ### File `.env`
 
-| Bien | Bat buoc | Mac dinh | Mo ta |
+| Biến | Bắt buộc | Mặc định | Mô tả |
 |------|----------|----------|--------|
-| `VPS_PUBLIC_IP` | Co | -- | IP cong khai VPS |
-| `DB_PASS` | Co | -- | Mat khau MariaDB |
-| `JWT_SECRET` | Co | -- | Secret key cho JWT token |
-| `DB_HOST` | Khong | `127.0.0.1` | Database host |
-| `DB_PORT` | Khong | `3306` | Database port |
-| `DB_USER` | Khong | `nroshield` | Database user |
-| `DB_NAME` | Khong | `nroshield` | Database name |
-| `API_PORT` | Khong | `5000` | Backend API port |
-| `AI_ENGINE_PORT` | Khong | `8000` | AI Engine port |
-| `SSH_PORT` | Khong | `22` | SSH port |
-| `PROXY_PORT_RANGE_START` | Khong | `30000` | Proxy port range start |
-| `PROXY_PORT_RANGE_END` | Khong | `60000` | Proxy port range end |
-| `MAX_CONN_PER_IP` | Khong | `500` | Max connections per IP |
-| `SYN_RATE_LIMIT` | Khong | `300/sec` | SYN rate limit |
-| `UDP_RATE_LIMIT` | Khong | `2000/sec` | UDP rate limit |
-| `TELEGRAM_BOT_TOKEN` | Khong | -- | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Khong | -- | Telegram chat ID |
-| `AI_BLOCK_THRESHOLD` | Khong | `0.8` | AI auto-block threshold |
+| `VPS_PUBLIC_IP` | Có | -- | IP công khai VPS |
+| `DB_PASS` | Có | -- | Mật khẩu MariaDB |
+| `JWT_SECRET` | Có | -- | Secret key cho JWT token |
+| `DB_HOST` | Không | `127.0.0.1` | Database host |
+| `DB_PORT` | Không | `3306` | Database port |
+| `DB_USER` | Không | `nroshield` | Database user |
+| `DB_NAME` | Không | `nroshield` | Database name |
+| `API_PORT` | Không | `5000` | Backend API port |
+| `AI_ENGINE_PORT` | Không | `8000` | AI Engine port |
+| `SSH_PORT` | Không | `22` | SSH port |
+| `PROXY_PORT_RANGE_START` | Không | `30000` | Proxy port range start |
+| `PROXY_PORT_RANGE_END` | Không | `60000` | Proxy port range end |
+| `MAX_CONN_PER_IP` | Không | `500` | Max connections per IP |
+| `SYN_RATE_LIMIT` | Không | `300/sec` | SYN rate limit |
+| `UDP_RATE_LIMIT` | Không | `2000/sec` | UDP rate limit |
+| `TELEGRAM_BOT_TOKEN` | Không | -- | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | Không | -- | Telegram chat ID |
+| `AI_BLOCK_THRESHOLD` | Không | `0.8` | AI auto-block threshold |
 
 ---
 
-## He thong Firewall
+## Hệ thống Firewall
 
-### Early Drop Engine (Tinh nang chinh v2.2)
+### Early Drop Engine (Tính năng chính v2.2)
 
-Script `early_drop.sh` xu ly packet tai `raw` table -- **truoc conntrack**. Dieu nay co nghia:
+Script `early_drop.sh` xử lý packet tại `raw` table -- **trước conntrack**. Điều này có nghĩa:
 
-- Packet bi DROP **khong tao conntrack entry** -- khong ton RAM
-- Packet bi DROP **khong qua connection tracking** -- khong ton CPU
-- Chi co bandwidth mang bi anh huong (khong the tranh o tang VPS)
+- Packet bị DROP **không tạo conntrack entry** -- không tốn RAM
+- Packet bị DROP **không qua connection tracking** -- không tốn CPU
+- Chỉ có bandwidth mạng bị ảnh hưởng (không thể tránh ở tầng VPS)
 
 ```
 Botnet 100K PPS --> raw PREROUTING: DROP (blacklist match)
@@ -602,25 +602,25 @@ Botnet 100K PPS --> raw PREROUTING: DROP (blacklist match)
                 --> RAM: 0 bytes allocated
 ```
 
-**So sanh voi filter table (cach thong thuong):**
+**So sánh với filter table (cách thông thường):**
 ```
-Botnet 100K PPS --> conntrack: 100K entries created (ton ~200MB RAM)
-                --> filter INPUT: DROP (qua muon, tai nguyen da bi tieu hao)
-                --> CPU: 30-50% xu ly conntrack
+Botnet 100K PPS --> conntrack: 100K entries created (tốn ~200MB RAM)
+                --> filter INPUT: DROP (quá muộn, tài nguyên đã bị tiêu hao)
+                --> CPU: 30-50% xử lý conntrack
 ```
 
-### Cac lop bao ve trong Early Drop
+### Các lớp bảo vệ trong Early Drop
 
-| Lop | Bang | Chain | Mo ta |
+| Lớp | Bảng | Chain | Mô tả |
 |-----|------|-------|--------|
 | 1 | raw | PREROUTING | Blacklist ipset (4 sets), invalid TCP flags, bogon IPs |
 | 2 | raw | PREROUTING | UDP amplification source ports, IP fragments |
 | 3 | mangle | PREROUTING | TTL validation, MSS check, PPS rate limit |
-| 4 | filter | INPUT | Game-specific rules (chi clean packets) |
+| 4 | filter | INPUT | Game-specific rules (chỉ clean packets) |
 
-### Danh sach Scripts
+### Danh sách Scripts
 
-| Script | Chuc nang | Chay tai |
+| Script | Chức năng | Chạy tại |
 |--------|-----------|----------|
 | `early_drop.sh` | Blacklist, invalid flags, bogon, amplification | raw PREROUTING |
 | `iptables_base.sh` | Ipset, default policy, SSH, NAT | filter + mangle |
@@ -637,18 +637,18 @@ Botnet 100K PPS --> conntrack: 100K entries created (ton ~200MB RAM)
 
 ### Auto-Blacklist (Systemd Timer)
 
-Moi 10 giay, systemd timer kiem tra conntrack va tu dong them IP co >500 connections vao raw blacklist:
+Mỗi 10 giây, systemd timer kiểm tra conntrack và tự động thêm IP có >500 connections vào raw blacklist:
 
 ```
-IP co 1000 connections --> auto them vao nroshield-rawdrop (timeout 1h)
---> Moi packet tiep theo bi DROP tai raw table
---> Conntrack entries cu timeout tu dong
---> Tai nguyen server giai phong dan
+IP có 1000 connections --> auto thêm vào nroshield-rawdrop (timeout 1h)
+--> Mọi packet tiếp theo bị DROP tại raw table
+--> Conntrack entries cũ timeout tự động
+--> Tài nguyên server giải phóng dần
 ```
 
 ### Kernel Tuning
 
-`early_drop.sh` tu dong toi uu kernel:
+`early_drop.sh` tự động tối ưu kernel:
 
 ```
 net.netfilter.nf_conntrack_max = 2000000    # Tang conntrack slots
@@ -686,14 +686,14 @@ net.ipv4.conf.all.rp_filter = 1             # Reverse path filter
 | AI | `/api/ai` | status, detections |
 | Keys | `/api/keys` | validate, create |
 
-### Phan quyen
+### Phân quyền
 
-| Role | Quyen |
+| Role | Quyền |
 |------|-------|
-| `admin` | Toan quyen: quan ly users, servers, firewall, audit |
-| `reseller` | Quan ly khach hang, tao license key |
-| `premium` | Nhieu server, tinh nang nang cao, AI protection |
-| `basic` | 1 server, tinh nang co ban |
+| `admin` | Toàn quyền: quản lý users, servers, firewall, audit |
+| `reseller` | Quản lý khách hàng, tạo license key |
+| `premium` | Nhiều server, tính năng nâng cao, AI protection |
+| `basic` | 1 server, tính năng cơ bản |
 
 ### WebSocket
 
@@ -701,18 +701,18 @@ net.ipv4.conf.all.rp_filter = 1             # Reverse path filter
 ws://YOUR_IP:5000/ws
 
 Events:
-- TRAFFIC_METRICS  --> PPS, Mbps, connections (moi 5 giay)
-- attack_alert     --> Khi phat hien tan cong
-- rule_update      --> Khi firewall rule thay doi
-- sync_complete    --> Khi dong bo rules hoan tat
+- TRAFFIC_METRICS  --> PPS, Mbps, connections (mỗi 5 giây)
+- attack_alert     --> Khi phát hiện tấn công
+- rule_update      --> Khi firewall rule thay đổi
+- sync_complete    --> Khi đồng bộ rules hoàn tất
 ```
 
-### Cron Jobs tu dong
+### Cron Jobs tự động
 
-- **Moi 5 phut**: Server health check (ping + port)
-- **Moi 6 gio**: Blocklist sync tu threat intelligence
-- **Moi 10 giay**: Auto-blacklist IP tan cong (systemd timer)
-- **Daily**: Rotate attack logs (giu 30 ngay)
+- **Mỗi 5 phút**: Server health check (ping + port)
+- **Mỗi 6 giờ**: Blocklist sync từ threat intelligence
+- **Mỗi 10 giây**: Auto-blacklist IP tấn công (systemd timer)
+- **Daily**: Rotate attack logs (giữ 30 ngày)
 
 ---
 
@@ -726,51 +726,51 @@ flutter pub get
 flutter run
 ```
 
-### Cau hinh ket noi Backend
+### Cấu hình kết nối Backend
 
-Sua `lib/services/api_service.dart`:
+Sửa `lib/services/api_service.dart`:
 ```dart
 static const String baseUrl = 'http://YOUR_VPS_IP:5000';
 ```
 
-### Man hinh
+### Màn hình
 
-| Man hinh | Mo ta |
+| Màn hình | Mô tả |
 |----------|--------|
-| Login | Dang nhap voi animations, grid background |
-| Dashboard | Tong quan: stats, servers, traffic real-time |
-| Servers | Quan ly server + game type selection |
-| Attacks | Danh sach tan cong + severity |
-| Firewall | Quan ly rules + sync status |
-| Notifications | Thong bao read/unread |
+| Login | Đăng nhập với animations, grid background |
+| Dashboard | Tổng quan: stats, servers, traffic real-time |
+| Servers | Quản lý server + game type selection |
+| Attacks | Danh sách tấn công + severity |
+| Firewall | Quản lý rules + sync status |
+| Notifications | Thông báo read/unread |
 | Health | Server health status (green/yellow/red) |
-| Analytics | Bieu do tan cong (fl_chart) |
-| Webhooks | Quan ly Discord/Slack webhooks |
-| Backup | Sao luu/phuc hoi cau hinh |
+| Analytics | Biểu đồ tấn công (fl_chart) |
+| Webhooks | Quản lý Discord/Slack webhooks |
+| Backup | Sao lưu/phục hồi cấu hình |
 | Settings | 2FA setup, theme toggle, language |
 | Admin | 5 tab: Users, Servers, Audit, Plans, Games |
 
-### Tinh nang
+### Tính năng
 
-- **Dark/Light mode** voi ThemeService
+- **Dark/Light mode** với ThemeService
 - **Real-time** qua WebSocket (auto-reconnect)
-- **2FA setup** voi QR code + backup codes
-- **fl_chart** bieu do phan tich tan cong
+- **2FA setup** với QR code + backup codes
+- **fl_chart** biểu đồ phân tích tấn công
 - **Material 3** design system
 
 ---
 
 ## AI Engine
 
-### Mo hinh
+### Mô hình
 
-- **Isolation Forest** -- Phat hien anomaly dua tren 11 features
+- **Isolation Forest** -- Phát hiện anomaly dựa trên 11 features
 - Features: PPS, Mbps, SYN ratio, UDP ratio, connections, unique IPs, avg packet size...
 
-### Luong xu ly
+### Luồng xử lý
 
 ```
-Traffic Monitor --> JSON metrics --> AI Engine phan tich
+Traffic Monitor --> JSON metrics --> AI Engine phân tích
                                           |
                                   Anomaly Score (0-1)
                                           |
@@ -821,11 +821,11 @@ docker run -d -p 5000:5000 --env-file .env nroshield-backend:latest
 
 ---
 
-## Game duoc ho tro
+## Game được hỗ trợ
 
-| Game | Giao thuc | Ports | Rate Limit | Packet Size |
+| Game | Giao thức | Ports | Rate Limit | Packet Size |
 |------|-----------|-------|------------|-------------|
-| Ngoc Rong Online (NRO) | UDP | 14300-14400 | 30/s | 28-1500 |
+| Ngọc Rồng Online (NRO) | UDP | 14300-14400 | 30/s | 28-1500 |
 | SA:MP | UDP | 7777-7778 | 100/s | 28-2048 |
 | Minecraft | TCP | 25565 | 20/s | 1-32767 |
 | FiveM (GTA V) | UDP+TCP | 30120 | 200/s | 28-4096 |
@@ -836,49 +836,49 @@ docker run -d -p 5000:5000 --env-file .env nroshield-backend:latest
 | Lineage 2 | TCP | 2106, 7777 | 20/s | 4-8192 |
 | Web Server | TCP | 80, 443 | 500/s | 1-65535 |
 
-Them game moi: Sua `multi_game_support.sh` hoac them qua Admin API.
+Thêm game mới: Sửa `multi_game_support.sh` hoặc thêm qua Admin API.
 
 ---
 
-## Xu ly su co
+## Xử lý sự cố
 
-### Backend khong ket noi duoc Database
+### Backend không kết nối được Database
 
 ```bash
 systemctl status mariadb
-# Neu khong chay:
+# Nếu không chạy:
 systemctl start mariadb
 
-# Kiem tra credentials:
+# Kiểm tra credentials:
 mysql -u nroshield -p'YOUR_PASSWORD' -e "SHOW DATABASES;"
 ```
 
 ### Firewall rules bi mat sau reboot
 
 ```bash
-# Kiem tra systemd service:
+# Kiểm tra systemd service:
 systemctl status nroshield-firewall
 
 # Chay lai master setup:
 cd /opt/nroshield/firewall && sudo bash master_setup.sh all
 ```
 
-### WebSocket khong ket noi
+### WebSocket không kết nối
 
-Kiem tra WebSocket path phai la `/ws`:
+Kiểm tra WebSocket path phải là `/ws`:
 ```
 ws://YOUR_DOMAIN/ws
 ```
-Neu dung HTTPS thi WebSocket se la:
+Nếu dùng HTTPS thì WebSocket sẽ là:
 ```
 wss://YOUR_DOMAIN/ws
 ```
 
-### Reset toan bo firewall
+### Reset toàn bộ firewall
 
 ```bash
 cd /opt/nroshield/firewall && sudo bash clean_rules.sh
-# Sau do chay lai:
+# Sau đó chạy lại:
 sudo bash master_setup.sh all
 ```
 
@@ -904,16 +904,16 @@ tail -f /var/log/nroshield/auto_rawdrop.log
 
 GitHub Actions chay 4 jobs khi push/PR:
 
-| Job | Mo ta |
+| Job | Mô tả |
 |-----|--------|
-| Backend Lint | Require tat ca JS modules, kiem tra syntax |
-| Firewall Syntax | `bash -n` tren tat ca scripts |
-| Security Check | Quet hardcoded secrets, command injection |
-| Docker Build | Build Docker image thanh cong |
+| Backend Lint | Require tất cả JS modules, kiểm tra syntax |
+| Firewall Syntax | `bash -n` trên tất cả scripts |
+| Security Check | Quét hardcoded secrets, command injection |
+| Docker Build | Build Docker image thành công |
 
 ---
 
-## Dong gop
+## Đóng góp
 
 1. Fork repository
 2. Tao branch: `git checkout -b feature/ten-tinh-nang`
@@ -925,11 +925,11 @@ GitHub Actions chay 4 jobs khi push/PR:
 
 ## License
 
-MIT License -- Xem [LICENSE](LICENSE) de biet chi tiet.
+MIT License -- Xem [LICENSE](LICENSE) để biết chi tiết.
 
 ---
 
 <div align="center">
-  <p><strong>NRO Shield v2.2</strong> -- Bao ve game server cua ban khoi moi cuoc tan cong DDoS</p>
+  <p><strong>NRO Shield v2.2</strong> -- Bảo vệ game server của bạn khỏi mọi cuộc tấn công DDoS</p>
   <p>Made with love for the gaming community</p>
 </div>
