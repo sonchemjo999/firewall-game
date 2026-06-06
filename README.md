@@ -858,10 +858,14 @@ Services:
 
 ### Dockerfile
 
-```bash
-docker build -t nroshield-backend:latest .
-docker run -d -p 5000:5000 --env-file .env nroshield-backend:latest
-```
+Backend giờ chạy **trực tiếp trên host** (không còn trong container). File `Dockerfile` và `docker-entrypoint.sh` đã được xóa.
+
+**Cách hoạt động:**
+1. `db` container — MariaDB bind ra `127.0.0.1:3306`
+2. `ai_engine` container — bind ra `127.0.0.1:8000`
+3. Backend host — kết nối tới 2 container trên qua localhost
+
+Sử dụng service file `backend/nroshield-backend.service` để systemd quản lý backend trên host.
 
 ---
 
