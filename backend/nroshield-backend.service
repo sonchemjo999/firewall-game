@@ -1,0 +1,17 @@
+[Unit]
+Description=NRO Shield Backend API
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/nroshield/backend
+EnvironmentFile=/opt/nroshield/.env
+ExecStart=/usr/bin/node server.js
+Restart=unless-stopped
+RestartSec=5
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

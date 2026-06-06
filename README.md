@@ -92,9 +92,9 @@ Packet tấn công --> raw PREROUTING (DROP ngay) --> KHÔNG tạo conntrack -->
 
 | Tính năng | Mô tả |
 |-----------|--------|
-| Docker | Dockerfile + docker-compose cho triển khai nhanh |
+| Docker Compose | Chỉ dùng cho `db` + `ai_engine`, backend chạy trực tiếp trên host |
 | CI/CD | GitHub Actions (4 jobs: lint, syntax, security, docker) |
-| Systemd | Auto-restore firewall khi reboot |
+| Systemd | Auto-restore firewall khi reboot và quản lý backend host |
 | Log Rotate | Tự động xoay log, giữ 30 ngày |
 
 ---
@@ -317,9 +317,11 @@ DB_PASS="MatKhauDBRatManh"
 DB_ROOT_PASSWORD="MatKhauRootDBRatManh"
 JWT_SECRET="ChuoiBiMatJWTRatDaiVaKhoDoan"
 API_PORT=5000
+DB_HOST=127.0.0.1
+DB_PORT=3306
+AI_ENGINE_HOST=127.0.0.1
 AI_ENGINE_PORT=8000
-AI_ENGINE_HOST=ai_engine
-AI_BASE_URL=http://ai_engine:8000
+AI_BASE_URL=http://127.0.0.1:8000
 ```
 
 Nếu muốn gửi cảnh báo Telegram thì sửa thêm:
@@ -329,18 +331,19 @@ TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
 TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
 
-#### Lệnh all-in-one cho Docker
+#### Lệnh all-in-one cho mô hình backend host
 
 ```bash
-cd /opt/nroshield && cp .env.example .env 2>/dev/null || true && sudo bash firewall/master_setup.sh --mode docker && docker compose up -d --build && docker compose exec backend npm run migrate && docker compose ps && docker logs --since=60s nroshield-backend
+cd /opt/nroshield && cp .env.example .env 2>/dev/null || true && sudo bash firewall/master_setup.sh --mode docker && docker compose up -d db ai_engine && cd backend && npm install && npm run migrate && systemctl restart nroshield-backend && docker compose ps
 ```
 
 Lệnh này sẽ tự:
 - chuẩn bị firewall host theo Docker mode
 - bootstrap Docker iptables chains
-- build và chạy stack `db`, `ai_engine`, `backend`
-- chạy migrations thủ công thêm 1 lần để chắc chắn schema đủ
-- in trạng thái container và log backend mới nhất
+- chạy 2 container `db`, `ai_engine`
+- cài dependencies backend trên host và chạy migrations
+- restart backend host qua `systemd`
+- in trạng thái container còn lại
 
 #### Bước 5: Thiết lập firewall host trước khi chạy Docker
 
@@ -362,36 +365,34 @@ Sau khi chạy xong, đảm bảo host cho phép các cổng cần thiết:
 - `5000` nếu bạn muốn public trực tiếp backend API
 - các game port/proxy port bạn sử dụng
 
-#### Bước 6: Build và chạy 3 container
+#### Bước 6: Chạy 2 container hỗ trợ và backend trên host
 
 ```bash
 cd /opt/nroshield
-docker compose up -d --build
+docker compose up -d db ai_engine
 docker compose ps
+
+cd /opt/nroshield/backend
+npm install
+npm run migrate
+systemctl restart nroshield-backend
 ```
 
 Kết thúc bước này, kiến trúc sẽ là:
-- `db`: MariaDB nội bộ, không public internet
-- `ai_engine`: Python AI nội bộ, backend gọi qua Docker network
-- `backend`: API + WebSocket ở cổng `5000`
+- `db`: MariaDB nội bộ, bind localhost để backend host truy cập
+- `ai_engine`: Python AI nội bộ, bind localhost để backend host gọi qua HTTP
+- `backend`: API + WebSocket chạy trực tiếp trên host ở cổng `5000`
 
-#### Bước 7: Khởi tạo database migrations trong container backend
+#### Bước 7: Khởi tạo database migrations trên backend host
 
-Từ bản này trở đi, container `backend` sẽ tự chờ MariaDB rồi tự chạy `npm run migrate` khi khởi động. Nếu muốn chạy tay lại sau deploy, dùng `docker compose exec backend npm run migrate`.
+Sau khi `db` và `ai_engine` đã chạy, backend host sẽ dùng `.env` ở root project để kết nối localhost.
 
 ```bash
-# Nếu là lần deploy đầu hoặc vừa sửa Dockerfile/entrypoint
-cd /opt/nroshield
-iptables -N DOCKER-USER 2>/dev/null || true
-iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
-iptables -N DOCKER-FORWARD 2>/dev/null || true
-iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
-
-docker compose up -d --build
-docker compose exec backend npm run migrate
-
-# Xem backend tự migrate rồi start
-docker logs --since=60s nroshield-backend
+cd /opt/nroshield/backend
+npm install
+npm run migrate
+systemctl restart nroshield-backend
+journalctl -u nroshield-backend -n 50 --no-pager
 ```
 
 #### Bước 8: Cấu hình Nginx để public web quản trị
@@ -475,8 +476,8 @@ https://YOUR_DOMAIN/
 #### Bước 10: Lệnh quản trị thường dùng
 
 ```bash
-# Xem logs backend
-docker compose logs -f backend
+# Xem logs backend host
+journalctl -u nroshield-backend -f
 
 # Xem logs AI
 docker compose logs -f ai_engine
@@ -484,12 +485,15 @@ docker compose logs -f ai_engine
 # Xem logs DB
 docker compose logs -f db
 
-# Restart rieng backend
-docker compose restart backend
+# Restart rieng backend host
+systemctl restart nroshield-backend
 
-# Restart toan bo stack
+# Restart 2 container ho tro
+docker compose restart db ai_engine
+
+# Restart toan bo phan Docker con lai
 docker compose down
-docker compose up -d
+docker compose up -d db ai_engine
 ```
 
 ### Cách 3: Hướng dẫn chi tiết từng bước
@@ -816,9 +820,9 @@ Traffic Monitor --> JSON metrics --> AI Engine phân tích
 ### Docker Compose
 
 Mô hình khuyến nghị cho production:
-- `db` -- MariaDB nội bộ, không public internet
-- `ai_engine` -- Python AI nội bộ, chỉ cho backend gọi qua Docker network
-- `backend` -- Node.js API + WebSocket trên port `5000`
+- `db` -- MariaDB nội bộ, bind localhost để backend host truy cập
+- `ai_engine` -- Python AI nội bộ, bind localhost để backend host gọi qua HTTP
+- `backend` -- Node.js API + WebSocket chạy trực tiếp trên host ở port `5000`
 - Firewall anti-DDoS (`iptables`, `ipset`, `raw PREROUTING`) tiếp tục chạy trên host, không đưa vào container
 
 ```bash
@@ -831,12 +835,9 @@ iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKE
 iptables -N DOCKER-FORWARD 2>/dev/null || true
 iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
 
-docker compose up -d --build
-docker compose exec backend npm run migrate
-
-# Backend se tu doi DB san sang, tu chay migrate, roi moi start API
-# Kiem tra log khoi dong neu can
-docker logs --since=60s nroshield-backend
+docker compose up -d db ai_engine
+cd backend && npm install && npm run migrate
+systemctl restart nroshield-backend
 ```
 
 Cổng public khuyến nghị:
@@ -846,13 +847,14 @@ Cổng public khuyến nghị:
 
 Luồng triển khai nên dùng:
 1. Chạy firewall scripts trên host trước
-2. Khởi động 3 container `db`, `ai_engine`, `backend`
-3. Public dashboard web qua domain và reverse proxy `/api` + `/ws` về backend
+2. Khởi động 2 container `db`, `ai_engine`
+3. Chạy backend trực tiếp trên host bằng `systemd`
+4. Public dashboard web qua domain và reverse proxy `/api` + `/ws` về backend
 
 Services:
-- `backend` -- Node.js API (port 5000)
-- `mariadb` -- Database nội bộ (port 3306 trên Docker network)
-- `ai_engine` -- Python AI nội bộ (port 8000 trên Docker network)
+- `backend` -- Node.js API trên host (port 5000)
+- `mariadb` -- Database container (bind localhost)
+- `ai_engine` -- Python AI container (bind localhost)
 
 ### Dockerfile
 

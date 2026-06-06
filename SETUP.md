@@ -121,15 +121,25 @@ Sau khi sửa xong, bấm `Ctrl + X` → `Y` → `Enter` để lưu.
 
 ## 📌 Bước 5: Cài đặt Libraries cho từng Module
 
-### 5.1. Backend API (Node.js)
+### 5.1. Backend API (Node.js chạy trực tiếp trên host)
 ```bash
 cd /opt/nroshield/backend
 npm install
+npm run migrate
 ```
 
-### 5.2. Khởi tạo Bảng Database
-Từ bản Docker này trở đi, `backend` sẽ tự chờ DB sẵn sàng và tự chạy full migration khi container khởi động. Nếu muốn ép chạy lại migrations thủ công sau deploy, dùng `docker compose exec backend npm run migrate`.
+Backend không còn chạy trong Docker. Nó đọc file `/opt/nroshield/.env` và kết nối tới MariaDB cùng AI engine qua các port localhost được publish từ Docker Compose.
 
+Ví dụ các biến bắt buộc trong `.env` cho kiến trúc mới:
+```bash
+DB_HOST=127.0.0.1
+DB_PORT=3306
+AI_ENGINE_HOST=127.0.0.1
+AI_ENGINE_PORT=8000
+AI_BASE_URL=http://127.0.0.1:8000
+```
+
+### 5.2. Khởi tạo Bảng Database và chạy 2 container còn lại
 ```bash
 cd /opt/nroshield
 
@@ -139,14 +149,14 @@ iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKE
 iptables -N DOCKER-FORWARD 2>/dev/null || true
 iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
 
-docker compose up -d --build
-docker compose exec backend npm run migrate
-
-# Theo dõi log migrate tự động của backend
-docker logs --since=60s nroshield-backend
+# chỉ khởi động MariaDB và AI engine
+docker compose up -d db ai_engine
 
 # Xác nhận các bảng quan trọng đã có
 docker compose exec db mariadb -uroot -p"$DB_ROOT_PASSWORD" -D "$DB_NAME" -e "SHOW TABLES LIKE 'license_keys'; SHOW TABLES LIKE 'proxy_ports'; SHOW TABLES LIKE 'servers';"
+
+# Tạo license admin đầu tiên ngay trong môi trường Docker
+docker compose exec db mariadb -unroshield -p'Matkhau1@#$' nroshield -e "INSERT INTO license_keys (key_code, max_servers, max_ports_per_server, max_bandwidth_mbps) VALUES ('ADMIN-123456', 99, 99, 9999);"
 ```
 Kết quả đúng sẽ hiện:
 ```
@@ -306,31 +316,58 @@ systemctl enable nginx
 
 ## 📌 Bước 8: Tạo Systemd Services (Chạy ngầm tự động)
 
-Dự án đã có sẵn các file service trong thư mục `services/`. Copy chúng trực tiếp:
+Backend giờ chạy trực tiếp trên host, còn AI engine vẫn có thể chọn 1 trong 2 cách:
+- chạy bằng Docker Compose cùng `db`
+- hoặc dùng service file cũ nếu muốn chạy AI engine ngoài Docker
+
+### 8.1. Cài systemd service cho Backend host
+```bash
+cp /opt/nroshield/backend/nroshield-backend.service /etc/systemd/system/nroshield-backend.service
+systemctl daemon-reload
+systemctl enable nroshield-backend
+systemctl restart nroshield-backend
+```
+
+Kiểm tra trạng thái backend:
+```bash
+systemctl status nroshield-backend --no-pager
+journalctl -u nroshield-backend -n 50 --no-pager
+```
+
+### 8.2. Telegram Bot và AI Engine
+Nếu vẫn dùng file service trong thư mục `services/`, copy những file cần thiết:
 
 ```bash
-cp /opt/nroshield/services/nroshield-api.service /etc/systemd/system/
 cp /opt/nroshield/services/nroshield-bot.service /etc/systemd/system/
+```
+
+Nếu bạn muốn chạy `ai_engine` bằng systemd thay vì Docker, có thể copy thêm:
+```bash
 cp /opt/nroshield/services/nroshield-ai.service /etc/systemd/system/
 ```
 
-Kích hoạt và chạy toàn bộ:
+Kích hoạt dịch vụ tùy theo cách triển khai:
 ```bash
 systemctl daemon-reload
-systemctl enable nroshield-api nroshield-bot nroshield-ai
-systemctl restart nroshield-api nroshield-bot nroshield-ai
+systemctl enable nroshield-bot
+systemctl restart nroshield-bot
 ```
 
-Kiểm tra trạng thái (Phải hiện **Active: active (running)** cho cả 3):
+Nếu AI engine chạy bằng systemd thì bật thêm:
 ```bash
-systemctl status nroshield-api --no-pager
+systemctl enable nroshield-ai
+systemctl restart nroshield-ai
+```
+
+Kiểm tra trạng thái:
+```bash
 systemctl status nroshield-bot --no-pager
 systemctl status nroshield-ai --no-pager
 ```
 
 Nếu dịch vụ nào báo lỗi, xem log chi tiết:
 ```bash
-journalctl -u nroshield-api -n 30 --no-pager
+journalctl -u nroshield-backend -n 30 --no-pager
 journalctl -u nroshield-bot -n 30 --no-pager
 journalctl -u nroshield-ai -n 30 --no-pager
 ```

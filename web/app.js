@@ -224,10 +224,11 @@ async function loadOverview() {
   document.getElementById('stat-ports').textContent = `${summary.active_ports || 0}/${summary.total_ports || 0}`;
   document.getElementById('stat-attacks').textContent = summary.attacks_today || 0;
   try {
-    const r = await fetch(`${API}/api/health`);
-    const ai = await r.json();
+    await api('GET', '/api/health/summary');
     document.getElementById('stat-ai').textContent = 'Active';
-  } catch { document.getElementById('stat-ai').textContent = 'Offline'; }
+  } catch {
+    document.getElementById('stat-ai').textContent = 'Offline';
+  }
 
   initTrafficChart();
 
@@ -342,8 +343,7 @@ async function loadAttacks() {
 // === AI ===
 async function loadAI() {
   try {
-    const r = await fetch(`/status`);
-    const ai = await r.json();
+    const ai = await api('GET', '/api/ai/status');
     document.getElementById('ai-models').textContent = ai.models_loaded ? '1' : '0';
     document.getElementById('ai-detections-list').innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -365,8 +365,9 @@ async function loadAI() {
         </div>
       </div>
       <p class="muted">AI Engine đang thu thập dữ liệu traffic. Khi đủ 100+ samples sẽ tự train model IsolationForest.</p>`;
-  } catch {
-    document.getElementById('ai-detections-list').innerHTML = '<p class="muted">❌ AI Engine offline. Kiểm tra systemctl status nroshield-ai</p>';
+  } catch (err) {
+    const msg = err?.message || 'Không tải được trạng thái AI';
+    document.getElementById('ai-detections-list').innerHTML = `<p class="muted">⚠️ ${msg}</p>`;
   }
 }
 

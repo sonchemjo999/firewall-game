@@ -2,6 +2,18 @@ const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
 
+async function ruleExists(command) {
+    try {
+        await execAsync(command);
+        return true;
+    } catch (err) {
+        if (typeof err.code === 'number' && err.code === 1) {
+            return false;
+        }
+        throw err;
+    }
+}
+
 /**
  * Thêm NAT rule (DNAT + SNAT) cho proxy port
  */
@@ -18,24 +30,30 @@ async function addNatRule(proxyPort, targetIp, targetPort, protocol = 'tcp') {
         const proto = protocol === 'both' ? ['tcp', 'udp'] : [protocol];
 
         for (const p of proto) {
-            // Kiểm tra xem rule đã tồn tại chưa để tránh trùng lặp
-            const checkDnat = `iptables -t nat -C PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort} 2>/dev/null`;
-            const { stdout: exists } = await execAsync(checkDnat).catch(() => ({ stdout: '' }));
+            const dnatRule = `iptables -t nat -C PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort}`;
+            const forwardRule = `iptables -C FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`;
+            const vpsIp = process.env.VPS_PUBLIC_IP || '';
+            const postroutingRule = vpsIp
+                ? `iptables -t nat -C POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j SNAT --to-source ${vpsIp}`
+                : `iptables -t nat -C POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j MASQUERADE`;
 
-            if (!exists) {
+            if (!(await ruleExists(dnatRule))) {
                 // DNAT: redirect incoming traffic tới target
                 await execAsync(
                     `iptables -t nat -I PREROUTING -p ${p} --dport ${proxyPort} -j DNAT --to-destination ${targetIp}:${targetPort}`
                 );
+            }
 
+            if (!(await ruleExists(forwardRule))) {
                 // Allow FORWARD cho traffic này
                 await execAsync(
                     `iptables -I FORWARD -p ${p} -d ${targetIp} --dport ${targetPort} -j ACCEPT`
                 );
+            }
 
+            if (!(await ruleExists(postroutingRule))) {
                 // SNAT: Sử dụng SNAT thay vì MASQUERADE để tăng độ ổn định cho RakNet/UDP
                 // Cần biến môi trường VPS_PUBLIC_IP
-                const vpsIp = process.env.VPS_PUBLIC_IP || '';
                 if (vpsIp) {
                     await execAsync(
                         `iptables -t nat -I POSTROUTING -p ${p} -d ${targetIp} --dport ${targetPort} -j SNAT --to-source ${vpsIp}`
