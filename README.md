@@ -329,12 +329,31 @@ TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
 TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
 
+#### Lệnh all-in-one cho Docker
+
+```bash
+cd /opt/nroshield && cp .env.example .env 2>/dev/null || true && sudo bash firewall/master_setup.sh --mode docker && docker compose up -d --build && docker compose exec backend npm run migrate && docker compose ps && docker logs --since=60s nroshield-backend
+```
+
+Lệnh này sẽ tự:
+- chuẩn bị firewall host theo Docker mode
+- bootstrap Docker iptables chains
+- build và chạy stack `db`, `ai_engine`, `backend`
+- chạy migrations thủ công thêm 1 lần để chắc chắn schema đủ
+- in trạng thái container và log backend mới nhất
+
 #### Bước 5: Thiết lập firewall host trước khi chạy Docker
 
 ```bash
 cd /opt/nroshield/firewall
 chmod +x *.sh
 bash master_setup.sh all
+
+# Tao cac chain Docker de khong bi loi FORWARD sau khi bat firewall
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
+iptables -N DOCKER-FORWARD 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
 ```
 
 Sau khi chạy xong, đảm bảo host cho phép các cổng cần thiết:
@@ -358,10 +377,21 @@ Kết thúc bước này, kiến trúc sẽ là:
 
 #### Bước 7: Khởi tạo database migrations trong container backend
 
+Từ bản này trở đi, container `backend` sẽ tự chờ MariaDB rồi tự chạy `npm run migrate` khi khởi động. Nếu muốn chạy tay lại sau deploy, dùng `docker compose exec backend npm run migrate`.
+
 ```bash
-docker compose exec backend node backend/database/migrate.js
-docker compose exec backend node backend/database/migrate_v2.js
-docker compose exec backend node backend/database/migrate_v3.js
+# Nếu là lần deploy đầu hoặc vừa sửa Dockerfile/entrypoint
+cd /opt/nroshield
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
+iptables -N DOCKER-FORWARD 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
+
+docker compose up -d --build
+docker compose exec backend npm run migrate
+
+# Xem backend tự migrate rồi start
+docker logs --since=60s nroshield-backend
 ```
 
 #### Bước 8: Cấu hình Nginx để public web quản trị
@@ -794,7 +824,19 @@ Mô hình khuyến nghị cho production:
 ```bash
 cp .env.example .env
 nano .env
+
+# Dam bao Docker co chain rieng truoc khi start stack
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
+iptables -N DOCKER-FORWARD 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
+
 docker compose up -d --build
+docker compose exec backend npm run migrate
+
+# Backend se tu doi DB san sang, tu chay migrate, roi moi start API
+# Kiem tra log khoi dong neu can
+docker logs --since=60s nroshield-backend
 ```
 
 Cổng public khuyến nghị:

@@ -1,5 +1,7 @@
 require('dotenv').config({ path: '../.env' });
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -38,6 +40,8 @@ const { triggerWebhooks } = require('./services/webhook.service');
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
+const webDir = path.join(__dirname, '../web');
+const hasWebDir = fs.existsSync(webDir);
 
 // === WebSocket Server ===
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -86,6 +90,10 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+if (hasWebDir) {
+    app.use(express.static(webDir));
+}
+
 // === Rate Limiting ===
 const rateLimit = require('express-rate-limit');
 const limiter = rateLimit({
@@ -126,6 +134,12 @@ app.get('/api/system/health', (req, res) => {
         uptime: process.uptime()
     });
 });
+
+if (hasWebDir) {
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(webDir, 'index.html'));
+    });
+}
 
 // 404
 app.use((req, res) => {
@@ -179,8 +193,6 @@ cron.schedule('*/3 * * * *', async () => {
 });
 
 // Broadcast Real-time /var/log/nroshield/traffic/current_metrics.json mỗi 5s
-const fs = require('fs');
-const path = require('path');
 let lastMetricsHash = '';
 let lastAttackSize = 0;
 

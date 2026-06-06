@@ -5,9 +5,17 @@
 # Mô tả: Cài đặt tất cả packages cần thiết cho hệ thống firewall
 # Hệ điều hành: Ubuntu 22.04 LTS
 # Quyền: Chạy với root (sudo)
+# Sử dụng: sudo bash install.sh [native|docker]
 # ============================================================================
 
 set -euo pipefail
+
+DEPLOY_MODE="${1:-native}"
+if [[ "$DEPLOY_MODE" != "native" && "$DEPLOY_MODE" != "docker" ]]; then
+    echo "[ERROR] Mode không hợp lệ: $DEPLOY_MODE"
+    echo "Usage: sudo bash install.sh [native|docker]"
+    exit 1
+fi
 
 # Colors
 RED='\033[0;31m'
@@ -97,7 +105,7 @@ else
     log_warn "Node.js $(node --version) đã tồn tại"
 fi
 
-# === 6. Cài đặt Python 3 + pip ===
+# === 6. Cài đặt Python 3 + uv ===
 log_info "Đang cài đặt Python 3..."
 apt-get install -y \
     python3 \
@@ -106,26 +114,58 @@ apt-get install -y \
     python3-dev
 log_ok "Python $(python3 --version) đã cài"
 
-# === 7. Cài đặt MySQL/MariaDB ===
-log_info "Đang cài đặt MariaDB..."
-if ! command -v mysql &>/dev/null; then
-    apt-get install -y mariadb-server mariadb-client
-    systemctl enable mariadb
-    systemctl start mariadb
-    log_ok "MariaDB đã cài"
+if ! command -v uv &>/dev/null; then
+    log_info "Đang cài đặt uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    log_ok "uv $(uv --version | awk '{print $2}') đã cài"
 else
-    log_warn "MySQL/MariaDB đã tồn tại"
+    log_warn "uv $(uv --version | awk '{print $2}') đã tồn tại"
 fi
 
-# === 8. Cài đặt GeoIP (tùy chọn) ===
+# === 7. Cài đặt MySQL/MariaDB ===
+if [[ "$DEPLOY_MODE" == "docker" ]]; then
+    log_info "Che do docker: bo qua MariaDB host, database se chay trong container"
+else
+    log_info "Đang cài đặt MariaDB..."
+    if ! command -v mysql &>/dev/null; then
+        apt-get install -y mariadb-server mariadb-client
+        systemctl enable mariadb
+        systemctl start mariadb
+        log_ok "MariaDB đã cài"
+    else
+        log_warn "MySQL/MariaDB đã tồn tại"
+    fi
+fi
+
+# === 8. Cài đặt Docker Engine + Compose khi dùng Docker mode ===
+if [[ "$DEPLOY_MODE" == "docker" ]]; then
+    log_info "Đang kiểm tra Docker Engine + Docker Compose..."
+    if command -v docker &>/dev/null && docker compose version &>/dev/null; then
+        log_warn "Docker Engine + Docker Compose đã tồn tại"
+    else
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable" > /etc/apt/sources.list.d/docker.list
+        apt-get update -y
+        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        log_ok "Docker Engine + Docker Compose đã cài"
+    fi
+
+    systemctl enable docker 2>/dev/null || true
+    systemctl start docker 2>/dev/null || true
+fi
+
+# === 9. Cài đặt GeoIP (tùy chọn) ===
 log_info "Đang cài đặt GeoIP tools..."
 apt-get install -y geoip-bin geoip-database || log_warn "Không cài được GeoIP"
 
-# === 9. Cài đặt hping3 (testing) ===
+# === 10. Cài đặt hping3 (testing) ===
 log_info "Đang cài đặt hping3 (testing tool)..."
 apt-get install -y hping3 || log_warn "Không cài được hping3"
 
-# === 10. Bật IP forwarding ===
+# === 11. Bật IP forwarding ===
 log_info "Bật IP forwarding..."
 sysctl -w net.ipv4.ip_forward=1
 if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
@@ -133,7 +173,17 @@ if ! grep -q "net.ipv4.ip_forward=1" /etc/sysctl.conf; then
 fi
 log_ok "IP forwarding đã bật"
 
-# === 11. Tạo thư mục log ===
+# === 12. Bootstrap iptables chains cho Docker mode ===
+if [[ "$DEPLOY_MODE" == "docker" ]]; then
+    log_info "Đang bootstrap Docker iptables chains..."
+    iptables -N DOCKER-USER 2>/dev/null || true
+    iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
+    iptables -N DOCKER-FORWARD 2>/dev/null || true
+    iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
+    log_ok "Docker iptables chains đã sẵn sàng"
+fi
+
+# === 13. Tạo thư mục log ===
 log_info "Tạo thư mục log..."
 mkdir -p /var/log/nroshield
 mkdir -p /var/log/nroshield/attacks
@@ -142,7 +192,7 @@ mkdir -p /var/log/nroshield/ai
 chmod 750 /var/log/nroshield
 log_ok "Thư mục log đã tạo: /var/log/nroshield/"
 
-# === 12. Tạo thư mục AI models ===
+# === 14. Tạo thư mục AI models ===
 log_info "Tạo thư mục AI models..."
 mkdir -p /opt/nroshield/ai_models
 chmod 700 /opt/nroshield/ai_models

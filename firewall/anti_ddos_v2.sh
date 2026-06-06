@@ -29,6 +29,8 @@ GAME_UDP_RATE="800/sec"
 GAME_UDP_BURST="400"
 GAME_TCP_RATE="200/sec"
 GAME_TCP_BURST="80"
+AMPLIFY_PORTS_PRIMARY="17,19,53,111,123,137,161,389,520,751,1434,1900,5353,11211,27015"
+AMPLIFY_PORTS_SECONDARY="32414"
 
 [[ -f "$CONFIG_FILE" ]] && source "$CONFIG_FILE"
 
@@ -41,6 +43,20 @@ NC='\033[0m'
 log_info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
+
+ensure_jump() {
+    local chain="$1"
+    shift
+
+    iptables -C "$chain" "$@" 2>/dev/null || iptables -I "$chain" 1 "$@"
+}
+
+append_unique() {
+    local chain="$1"
+    shift
+
+    iptables -C "$chain" "$@" 2>/dev/null || iptables -A "$chain" "$@"
+}
 
 if [[ $EUID -ne 0 ]]; then
     echo -e "${RED}[ERROR]${NC} Cần quyền root"; exit 1
@@ -86,8 +102,8 @@ iptables -A NROSHIELD_SYN_V2 -p tcp --syn \
 # Layer 4: SYN proxy (kernel SYN cookies đã bật ở sysctl)
 iptables -A NROSHIELD_SYN_V2 -j RETURN
 
-iptables -I INPUT 1 -p tcp --syn -j NROSHIELD_SYN_V2
-iptables -I FORWARD 1 -p tcp --syn -j NROSHIELD_SYN_V2
+ensure_jump INPUT -p tcp --syn -j NROSHIELD_SYN_V2
+ensure_jump FORWARD -p tcp --syn -j NROSHIELD_SYN_V2
 
 log_ok "SYN Flood V2: multi-layer protection"
 
@@ -127,8 +143,8 @@ iptables -A NROSHIELD_UDP_V2 -p udp -m length --length 4097:65535 -j DROP
 
 iptables -A NROSHIELD_UDP_V2 -j RETURN
 
-iptables -I INPUT 2 -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP_V2
-iptables -I FORWARD 2 -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP_V2
+ensure_jump INPUT -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP_V2
+ensure_jump FORWARD -p udp -m conntrack --ctstate NEW -j NROSHIELD_UDP_V2
 
 log_ok "UDP Flood V2: game-aware filtering"
 
@@ -179,7 +195,7 @@ iptables -A NROSHIELD_TCPFLOOD_V2 -p tcp --tcp-flags PSH,ACK PSH,ACK \
 
 iptables -A NROSHIELD_TCPFLOOD_V2 -j RETURN
 
-iptables -I INPUT 3 -p tcp -j NROSHIELD_TCPFLOOD_V2
+ensure_jump INPUT -p tcp -j NROSHIELD_TCPFLOOD_V2
 
 log_ok "ACK/RST/FIN Flood V2 protection"
 
@@ -189,19 +205,19 @@ log_ok "ACK/RST/FIN Flood V2 protection"
 log_info "Thiết lập chống Connection Exhaustion V2..."
 
 # TCP connection limit per IP per proxy port (strict)
-iptables -I FORWARD 3 -p tcp \
+append_unique FORWARD -p tcp \
     -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 \
     -j DROP
 
 # UDP connection limit per IP per proxy port
-iptables -I FORWARD 3 -p udp \
+append_unique FORWARD -p udp \
     -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m connlimit --connlimit-above "$MAX_CONN_PER_IP" --connlimit-mask 32 \
     -j DROP
 
 # TCP new connection rate per IP (forward)
-iptables -I FORWARD 3 -p tcp \
+append_unique FORWARD -p tcp \
     -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m conntrack --ctstate NEW \
     -m hashlimit \
@@ -213,7 +229,7 @@ iptables -I FORWARD 3 -p tcp \
     -j DROP
 
 # UDP new connection rate per IP (forward)
-iptables -I FORWARD 3 -p udp \
+append_unique FORWARD -p udp \
     -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m conntrack --ctstate NEW \
     -m hashlimit \
@@ -225,7 +241,7 @@ iptables -I FORWARD 3 -p udp \
     -j DROP
 
 # Global connection rate limit (chống distributed flood)
-iptables -I FORWARD 3 \
+append_unique FORWARD \
     -m conntrack --ctorigdstport "$PROXY_PORT_RANGE_START":"$PROXY_PORT_RANGE_END" \
     -m conntrack --ctstate NEW \
     -m limit --limit 10000/sec --limit-burst 5000 \
@@ -256,7 +272,7 @@ iptables -A NROSHIELD_ICMP_V2 -p icmp --icmp-type destination-unreachable -j RET
 iptables -A NROSHIELD_ICMP_V2 -p icmp --icmp-type time-exceeded -j RETURN
 iptables -A NROSHIELD_ICMP_V2 -p icmp -j DROP
 
-iptables -I INPUT 4 -p icmp -j NROSHIELD_ICMP_V2
+ensure_jump INPUT -p icmp -j NROSHIELD_ICMP_V2
 
 log_ok "ICMP Flood V2 protection"
 
@@ -266,18 +282,21 @@ log_ok "ICMP Flood V2 protection"
 log_info "Thiết lập chống Amplification V2..."
 
 # Comprehensive list of amplification source ports
-AMPLIFY_PORTS="17,19,53,111,123,137,161,389,520,751,1434,1900,5353,11211,27015,32414"
+AMPLIFY_PORTS_PRIMARY="17,19,53,111,123,137,161,389,520,751,1434,1900,5353,11211,27015"
+AMPLIFY_PORTS_SECONDARY="32414"
 
-# Block all amplification source ports in one rule
-iptables -A INPUT -p udp -m multiport --sports "$AMPLIFY_PORTS" \
+# Block amplification source ports (iptables multiport supports max 15 ports/rule)
+append_unique INPUT -p udp -m multiport --sports "$AMPLIFY_PORTS_PRIMARY" \
+    -m conntrack --ctstate NEW -j DROP
+append_unique INPUT -p udp -m multiport --sports "$AMPLIFY_PORTS_SECONDARY" \
     -m conntrack --ctstate NEW -j DROP
 
 # Block TCP reflection (SYN-ACK from known ports)
-iptables -A INPUT -p tcp --tcp-flags SYN,ACK SYN,ACK \
+append_unique INPUT -p tcp --tcp-flags SYN,ACK SYN,ACK \
     -m multiport --sports 80,443,8080,8443 \
     -m conntrack --ctstate NEW -j DROP
 
-log_ok "Amplification V2: ${AMPLIFY_PORTS}"
+log_ok "Amplification V2: ${AMPLIFY_PORTS_PRIMARY},${AMPLIFY_PORTS_SECONDARY}"
 
 # ============================================================================
 # 7. CHỐNG GRE/IPIP/ESP/AH TUNNEL FLOOD
@@ -285,11 +304,11 @@ log_ok "Amplification V2: ${AMPLIFY_PORTS}"
 log_info "Chống Tunnel Flood V2..."
 
 # Drop tất cả tunnel protocols không cần thiết
-iptables -A INPUT -p gre -j DROP          # GRE
-iptables -A INPUT -p ipencap -j DROP      # IPIP
-iptables -A INPUT -p esp -j DROP          # IPSec ESP
-iptables -A INPUT -p ah -j DROP           # IPSec AH
-iptables -A INPUT -p sctp -j DROP         # SCTP (ít dùng)
+append_unique INPUT -p gre -j DROP          # GRE
+append_unique INPUT -p ipencap -j DROP      # IPIP
+append_unique INPUT -p esp -j DROP          # IPSec ESP
+append_unique INPUT -p ah -j DROP           # IPSec AH
+append_unique INPUT -p sctp -j DROP         # SCTP (ít dùng)
 
 log_ok "Tunnel Flood V2: GRE/IPIP/ESP/AH/SCTP blocked"
 

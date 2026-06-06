@@ -17,6 +17,16 @@ log_info()  { echo -e "${CYAN}[INFO]${NC} $1"; }
 log_ok()    { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
+check_internet_connectivity() {
+    if ping -c 1 -W 3 google.com >/dev/null 2>&1; then
+        log_ok "Da ket noi Internet (ping google.com thanh cong)"
+        return 0
+    fi
+
+    echo -e "${RED}[ERROR]${NC} Khong the ping google.com. Dung script de tranh treo hoac cai dat loi."
+    exit 1
+}
+
 if [[ $EUID -ne 0 ]]; then
     echo -e "${RED}[ERROR]${NC} Cần quyền root"; exit 1
 fi
@@ -72,6 +82,11 @@ download_blocklist() {
         echo ""
     fi
 }
+
+# ============================================================================
+# KIEM TRA KET NOI MANG TRUOC KHI TAI BLOCKLISTS
+# ============================================================================
+check_internet_connectivity
 
 # ============================================================================
 # TẢI TẤT CẢ BLOCKLISTS

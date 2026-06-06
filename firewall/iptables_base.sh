@@ -266,6 +266,16 @@ iptables-save > /etc/iptables/rules.v4 2>/dev/null || \
 
 log_ok "Rules đã lưu"
 
+if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files docker.service >/dev/null 2>&1; then
+    mkdir -p /etc/systemd/system/docker.service.d
+    cat > /etc/systemd/system/docker.service.d/nroshield.conf <<'EOF'
+[Service]
+ExecStartPost=/bin/sh -c 'iptables -N DOCKER-USER 2>/dev/null || true; iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER; iptables -N DOCKER-FORWARD 2>/dev/null || true; iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD'
+EOF
+    systemctl daemon-reload
+    log_ok "Da cai dat Docker firewall compatibility drop-in"
+fi
+
 # ============================================================================
 # TỔNG KẾT
 # ============================================================================

@@ -128,8 +128,25 @@ npm install
 ```
 
 ### 5.2. Khởi tạo Bảng Database
+Từ bản Docker này trở đi, `backend` sẽ tự chờ DB sẵn sàng và tự chạy full migration khi container khởi động. Nếu muốn ép chạy lại migrations thủ công sau deploy, dùng `docker compose exec backend npm run migrate`.
+
 ```bash
-npm run migrate
+cd /opt/nroshield
+
+# Dam bao Docker co chain rieng truoc khi start stack
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-USER 2>/dev/null || iptables -I FORWARD 1 -j DOCKER-USER
+iptables -N DOCKER-FORWARD 2>/dev/null || true
+iptables -C FORWARD -j DOCKER-FORWARD 2>/dev/null || iptables -A FORWARD -j DOCKER-FORWARD
+
+docker compose up -d --build
+docker compose exec backend npm run migrate
+
+# Theo dõi log migrate tự động của backend
+docker logs --since=60s nroshield-backend
+
+# Xác nhận các bảng quan trọng đã có
+docker compose exec db mariadb -uroot -p"$DB_ROOT_PASSWORD" -D "$DB_NAME" -e "SHOW TABLES LIKE 'license_keys'; SHOW TABLES LIKE 'proxy_ports'; SHOW TABLES LIKE 'servers';"
 ```
 Kết quả đúng sẽ hiện:
 ```
