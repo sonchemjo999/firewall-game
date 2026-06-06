@@ -1,52 +1,52 @@
 <div align="center">
   <img src="icon.ico" width="120" alt="NRO Shield Logo">
   <h1>NRO Shield v2.2</h1>
-  <p><strong>He thong Chong DDoS Da Tang cho Game Server & Web Server</strong></p>
+  <p><strong>Hệ thống Chống DDoS Đa tầng cho Game Server & Web Server</strong></p>
   <p>AI-Powered | Multi-Game | Real-time | Flutter App</p>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
   [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-  [![CI](https://github.com/hoangtuvungcao/firewall/actions/workflows/ci.yml/badge.svg)](https://github.com/hoangtuvungcao/firewall/actions)
+  [![CI](https://github.com/sonchemjo999/firewall-game/actions/workflows/ci.yml/badge.svg)](https://github.com/sonchemjo999/firewall-game/actions)
 </div>
 
 ---
 
-## Muc Luc
+## Mục lục
 
-- [Gioi thieu](#gioi-thieu)
-- [Tinh nang](#tinh-nang)
-- [Kien truc he thong](#kien-truc-he-thong)
-- [Cau truc thu muc](#cau-truc-thu-muc)
-- [Yeu cau he thong](#yeu-cau-he-thong)
-- [Cai dat nhanh](#cai-dat-nhanh)
-- [Cai dat chi tiet](#cai-dat-chi-tiet)
-- [Cau hinh](#cau-hinh)
-- [He thong Firewall](#he-thong-firewall)
+- [Giới thiệu](#giới-thiệu)
+- [Tính năng](#tính-năng)
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
+- [Cài đặt nhanh](#cài-đặt-nhanh)
+- [Cài đặt chi tiết](#cài-đặt-chi-tiết)
+- [Cấu hình](#cấu-hình)
+- [Hệ thống Firewall](#hệ-thống-firewall)
 - [Backend API](#backend-api)
 - [Flutter App](#flutter-app)
 - [AI Engine](#ai-engine)
 - [Docker](#docker)
-- [Game duoc ho tro](#game-duoc-ho-tro)
-- [Xu ly su co](#xu-ly-su-co)
-- [Dong gop](#dong-gop)
+- [Game được hỗ trợ](#game-được-hỗ-trợ)
+- [Xử lý sự cố](#xử-lý-sự-cố)
+- [Đóng góp](#đóng-góp)
 
 ---
 
-## Gioi thieu
+## Giới thiệu
 
-NRO Shield la he thong phong chong tan cong DDoS toan dien, duoc thiet ke chuyen biet cho game server va web server. He thong ket hop:
+NRO Shield là hệ thống phòng chống tấn công DDoS toàn diện, được thiết kế chuyên biệt cho game server và web server. Hệ thống kết hợp:
 
-- **Kernel-level packet filtering** -- Drop tan cong tai tang `raw` table (truoc conntrack), khong ton CPU/RAM
-- **AI anomaly detection** -- Machine Learning phat hien tan cong zero-day
-- **Multi-game profiles** -- Toi uu cho 9+ loai game server khac nhau
-- **Real-time monitoring** -- WebSocket dong bo giua firewall, backend, va app
-- **Mobile management** -- Flutter app quan ly tu xa tren dien thoai
+- **Kernel-level packet filtering** -- Drop tấn công tại tầng `raw` table (trước conntrack), không tốn CPU/RAM
+- **AI anomaly detection** -- Machine Learning phát hiện tấn công zero-day
+- **Multi-game profiles** -- Tối ưu cho 9+ loại game server khác nhau
+- **Real-time monitoring** -- WebSocket đồng bộ giữa firewall, backend và app
+- **Mobile management** -- Flutter app quản lý từ xa trên điện thoại
 
-### Van de giai quyet
+### Vấn đề giải quyết
 
-Khi VPS bi tan cong DDoS (botnet), cac giai phap thong thuong xu ly packet o tang ung dung -- **ton CPU, RAM, va gay nghen conntrack**. NRO Shield giai quyet bang cach:
+Khi VPS bị tấn công DDoS (botnet), các giải pháp thông thường xử lý packet ở tầng ứng dụng -- **tốn CPU, RAM và gây nghẽn conntrack**. NRO Shield giải quyết bằng cách:
 
 ```
 Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG ton tai nguyen
@@ -56,9 +56,9 @@ Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG
 
 ---
 
-## Tinh nang
+## Tính năng
 
-### Chong tan cong (20+ scripts)
+### Chống tấn công (20+ scripts)
 
 | Tinh nang | Mo ta |
 |-----------|--------|
@@ -99,7 +99,7 @@ Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG
 
 ---
 
-## Kien truc he thong
+## Kiến trúc hệ thống
 
 ```
                      +------------------+
@@ -149,7 +149,7 @@ Packet tan cong --> raw PREROUTING (DROP ngay) --> KHONG tao conntrack --> KHONG
 
 ---
 
-## Cau truc thu muc
+## Cấu trúc thư mục
 
 ```
 nroshield/
@@ -214,7 +214,7 @@ nroshield/
 
 ---
 
-## Yeu cau he thong
+## Yêu cầu hệ thống
 
 | Thanh phan | Yeu cau toi thieu |
 |------------|-------------------|
@@ -229,13 +229,13 @@ nroshield/
 
 ---
 
-## Cai dat nhanh
+## Cài đặt nhanh
 
-### Cach 1: Master Setup (khuyen nghi)
+### Cách 1: Master Setup (khuyến nghị)
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 
 # 2. Cau hinh
@@ -259,7 +259,7 @@ cd firewall && chmod +x *.sh && sudo bash master_setup.sh all
 cd ../backend && node server.js
 ```
 
-### Cach 2: Docker tren VPS moi tinh (khuyen nghi neu dung 3 container)
+### Cách 2: Docker trên VPS mới tinh (khuyến nghị nếu dùng 3 container)
 
 Muc tieu cua cach nay:
 - Anti-DDoS that su van chay tren host (`iptables`, `ipset`, `raw PREROUTING`)
@@ -298,7 +298,7 @@ docker compose version
 
 ```bash
 rm -rf /opt/nroshield
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 ```
 
@@ -462,13 +462,13 @@ docker compose down
 docker compose up -d
 ```
 
-### Cach 3: Huong dan chi tiet tung buoc
+### Cách 3: Hướng dẫn chi tiết từng bước
 
 Xem **[SETUP.md](SETUP.md)** -- huong dan cam tay chi viec tu VPS trong den hoat dong 100%.
 
 ---
 
-## Cai dat chi tiet
+## Cài đặt chi tiết
 
 ### 1. Chuan bi he thong
 
@@ -505,7 +505,7 @@ SQL
 ### 4. Clone va Cau hinh
 
 ```bash
-git clone https://github.com/hoangtuvungcao/firewall.git /opt/nroshield
+git clone https://github.com/sonchemjo999/firewall-game /opt/nroshield
 cd /opt/nroshield
 cp .env.example .env
 nano .env   # Sua cac gia tri theo VPS cua ban
@@ -558,7 +558,7 @@ cd /opt/nroshield/telegram_bot && npm install && node bot.js
 
 ---
 
-## Cau hinh
+## Cấu hình
 
 ### File `.env`
 
@@ -585,7 +585,7 @@ cd /opt/nroshield/telegram_bot && npm install && node bot.js
 
 ---
 
-## He thong Firewall
+## Hệ thống Firewall
 
 ### Early Drop Engine (Tinh nang chinh v2.2)
 
@@ -726,7 +726,7 @@ flutter pub get
 flutter run
 ```
 
-### Cau hinh ket noi Backend
+### Cấu hình ket noi Backend
 
 Sua `lib/services/api_service.dart`:
 ```dart
@@ -821,7 +821,7 @@ docker run -d -p 5000:5000 --env-file .env nroshield-backend:latest
 
 ---
 
-## Game duoc ho tro
+## Game được hỗ trợ
 
 | Game | Giao thuc | Ports | Rate Limit | Packet Size |
 |------|-----------|-------|------------|-------------|
@@ -840,7 +840,7 @@ Them game moi: Sua `multi_game_support.sh` hoac them qua Admin API.
 
 ---
 
-## Xu ly su co
+## Xử lý sự cố
 
 ### Backend khong ket noi duoc Database
 
@@ -913,7 +913,7 @@ GitHub Actions chay 4 jobs khi push/PR:
 
 ---
 
-## Dong gop
+## Đóng góp
 
 1. Fork repository
 2. Tao branch: `git checkout -b feature/ten-tinh-nang`
