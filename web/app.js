@@ -1,5 +1,7 @@
 /* NRO Shield — Dashboard JS v2 */
-const API = `https://firewall.bacsycay.click`;
+const API = window.location.origin;
+const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WS_URL = `${WS_PROTOCOL}//${window.location.host}/ws`;
 
 let token = localStorage.getItem('nroshield_token');
 let user = JSON.parse(localStorage.getItem('nroshield_user') || 'null');
@@ -511,8 +513,7 @@ document.querySelectorAll('.sidebar-menu li').forEach(li => {
 // === WebSocket Logic ===
 function initWebSocket() {
   if (!token) return;
-  const wsUrl = API.replace('http', 'ws') + '/ws';
-  const ws = new WebSocket(wsUrl);
+  const ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
     document.getElementById('api-status').textContent = 'Connected (Live)';
